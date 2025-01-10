@@ -14,13 +14,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import android.util.Log;
-
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
-
-import java.io.File;
-import java.io.IOException;
-
 import Autonomous.Mailbox;
 
 @TeleOp
@@ -32,7 +26,7 @@ public class RedTele extends LinearOpMode {
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 10, flpPI = 0, flpPD = 0;
+    public static double flpPP = 0, flpPI = 0, flpPD = 0;
     public static int flpPosTarget = 0;
 
     //VELOCITY
@@ -40,13 +34,13 @@ public class RedTele extends LinearOpMode {
     private double flpVeloISum = 0;
     public static int flpVeloTarget = 0;
     public static int testTarget = 1200;
-    public static double flpVP = 0.0002, flpVI = 0.004, flpVD = 0.0000001;  //RISING
+    public static double flpVP = 0, flpVI = 0, flpVD = 0;  //RISING
     //endregion
 
     //region EXTENDER CONTROLLER
     public static double ticksPerDegree = 537.7;
     private PIDController ext;
-    public static double extP = 0.004, extI = 0.00, extD = 0.00015, extF = 0.003;
+    public static double extP = 0.005, extI = 0.03, extD = 0.00035;
     public static int extTarget;
     FtcDashboard dashboard;
     //endregion
@@ -61,12 +55,12 @@ public class RedTele extends LinearOpMode {
     //endregion
 
     //region DRIVER B MATERIAL
-    private Servo clawServo;
-    DcMotorEx flipMotor, armMotor;
+    private Servo smallWrist, bigWristR, bigWristL, spin, claw;
+    DcMotorEx flipMotor, extLMotor, extRMotor;
     boolean clawIH;
     ElapsedTime jerkTimer = new ElapsedTime();
-    double extLimit = 1600;
     double flpLimit = 4300;
+    int spinnerPos = 0;
     //endregion
 
     //region GAMEPADS
@@ -74,7 +68,6 @@ public class RedTele extends LinearOpMode {
     Gamepad oldG1;
     Gamepad currG2;
     Gamepad oldG2;
-
     //endregion
 
     //region CONTROL STATE
@@ -109,17 +102,21 @@ public class RedTele extends LinearOpMode {
         ext = new PIDController(extP, extI, extD);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-
         //arm motors
-        flipMotor = hardwareMap.get(DcMotorEx.class, "flip");
+        flipMotor = hardwareMap.get(DcMotorEx.class, "FLIP");
         flipMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         flipMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         flipMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        armMotor = hardwareMap.get(DcMotorEx.class, "arm");
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        extLMotor = hardwareMap.get(DcMotorEx.class, "EL");
+        extLMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        extLMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        extLMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        extRMotor = hardwareMap.get(DcMotorEx.class, "ER");
+        extRMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        extRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        extRMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         //drive motors
         drive = new NewMecanumDrive(hardwareMap);
@@ -127,14 +124,17 @@ public class RedTele extends LinearOpMode {
         drive.setPoseEstimate(Mailbox.currentPose);
 
         //servos
-        clawServo = hardwareMap.get(Servo.class, "claw");
+        smallWrist = hardwareMap.get(Servo.class, "SW");
+        bigWristL = hardwareMap.get(Servo.class, "BWL");
+        bigWristR = hardwareMap.get(Servo.class, "BWR");
+        spin = hardwareMap.get(Servo.class, "SPIN");
+        claw = hardwareMap.get(Servo.class, "CLAW");
 
         //gamepads
         currG1 = new Gamepad();
         oldG1 = new Gamepad();
         currG2 = new Gamepad();
         oldG2 = new Gamepad();
-
 
         //mailbox
         imu = hardwareMap.get(IMU.class, "imu");
@@ -147,11 +147,19 @@ public class RedTele extends LinearOpMode {
     {
         extTarget = 0;
         notNormalLimits = false;
+        smallWrist.setPosition(1);
+        bigWristL.setPosition(0);
+        bigWristR.setPosition(1);
+        spin.setPosition(1);
+        claw.setPosition(0.3);
     }
     public void movementInitII()
     {
-        clawServo.setPosition(0.4);
-        flpPosTarget = -200;
+        smallWrist.setPosition(0);
+        bigWristL.setPosition(1);
+        bigWristR.setPosition(0);
+        spin.setPosition(0);
+        claw.setPosition(0.6);
     }
 
     //BASICS
@@ -165,12 +173,12 @@ public class RedTele extends LinearOpMode {
         currentState = poseControlState.FREE;
         gameModeA = speedControlState.NORMAL;
         gameModeB = speedControlState.NORMAL;
-        extLimit = 1600;
         flpLimit = 4300;
 
         waitForStart();
 
         movementInitII();
+        double cumutime = 0;
         if (isStopRequested()) return;
 
         while (opModeIsActive() && !isStopRequested()) {
@@ -266,21 +274,6 @@ public class RedTele extends LinearOpMode {
             notNormalLimits = false;
             gameModeB = speedControlState.NORMAL;
         }
-
-        double flpAddition = 70;
-        double extAddition = 40;
-        switch(gameModeB){
-            case NORMAL:
-                extLimit = 10000;
-                flpLimit = 10000;
-                break;
-            case PRECISION:
-                flpLimit = 8000;
-                break;
-            case SUPERSPEED:
-                extLimit = 8000;
-                break;
-        }
         //endregion
 
         setStates();
@@ -289,39 +282,115 @@ public class RedTele extends LinearOpMode {
         {
             if(clawIH)
             {
-                clawServo.setPosition(0.4);
+                claw.setPosition(0.6);
             }
             else {
-                clawServo.setPosition(0);
+                claw.setPosition(0.3);
             }
             clawIH = !clawIH;
         }
         //endregion
 
-        //region EXTENDER
-        if(gamepad2.dpad_up && extTarget<=extLimit)
+        //region BIG WRIST
+        if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(1-0.005))
         {
-            telemetry.addLine("ext UP");
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(smallWrist.getPosition() + 0.005);
             currentState = poseControlState.FREE;
-            if(extTarget+extAddition>=extLimit-extAddition)
+        }
+        else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.39)
+        {
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(smallWrist.getPosition() - 0.005);
+            currentState = poseControlState.FREE;
+        }
+        if(gamepad2.left_stick_button)
+        {
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(0.39);
+            currentState = poseControlState.FREE;
+        }
+        //endregion
+
+        //region SMALL WRIST
+        if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(1-0.005))
+        {
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(smallWrist.getPosition() + 0.005);
+            currentState = poseControlState.FREE;
+        }
+        else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.39)
+        {
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(smallWrist.getPosition() - 0.005);
+            currentState = poseControlState.FREE;
+        }
+        if(gamepad2.left_stick_button)
+        {
+            telemetry.addLine("WRIST MOVEMENT");
+            smallWrist.setPosition(0.39);
+            currentState = poseControlState.FREE;
+        }
+        //endregion
+
+        //region SPINNER
+        if(gamepad2.right_stick_x>0 || gamepad2.right_stick_x<0)
+        {
+            telemetry.addLine("SPINNER MOVEMENT");
+            spin.setPosition(spin.getPosition() + (gamepad2.right_stick_x * 0.05));
+            currentState = poseControlState.FREE;
+        }
+        if(currG2.right_stick_button && !oldG2.right_stick_button)
+        {
+            spinnerPos ++;
+            if(spinnerPos>3)
             {
-                extTarget+=Math.abs(Math.abs(extTarget)-extLimit);
+                spinnerPos = 0;
             }
-            else {
-                extTarget+=extAddition;
+            switch(spinnerPos)
+            {
+                case 0:
+                    spin.setPosition(0.0956);
+                    break;
+                case 1:
+                    spin.setPosition(0.3883);
+                    break;
+                case 2:
+                    spin.setPosition(0.6728);
+                    break;
+                case 3:
+                    spin.setPosition(0.9394);
+                    break;
             }
         }
-        else if(gamepad2.dpad_down && extTarget>=250)
+        //endregion
+
+        //region EXTENDER
+        if(gamepad2.dpad_up && extTarget<=1500)
         {
-            telemetry.addLine("ext DOWN");
+            extTarget = 1500;
+           /* telemetry.addLine("ext UP");
             currentState = poseControlState.FREE;
-            if(extTarget-extAddition<=250)
+            if(extTarget+40>=1500-40)
+            {
+                extTarget+=Math.abs(Math.abs(extTarget)-1500);
+            }
+            else {
+                extTarget+=40;
+            }*/
+        }
+        else if(gamepad2.dpad_down && extTarget>=0)
+        {
+            extTarget = 0;
+            /*telemetry.addLine("ext DOWN");
+            currentState = poseControlState.FREE;
+            if(extTarget-40<=0)
             {
                 extTarget-=Math.abs(extTarget);
             }
             else {
-                extTarget-=extAddition;
-            }
+                extTarget-=40;
+            }*/
         }
         //endregion
 
@@ -331,12 +400,12 @@ public class RedTele extends LinearOpMode {
             telemetry.addLine("flp DOWN");
             currentState = poseControlState.FREE;
 
-            if(flpPosTarget+flpAddition>=-150)
+            if(flpPosTarget+20>=-150)
             {
                 flpPosTarget+=Math.abs(flpPosTarget+150);
             }
             else {
-                flpPosTarget+=flpAddition;
+                flpPosTarget+=20;
             }
         }
         else if(gamepad2.dpad_left && flpPosTarget>=-flpLimit)
@@ -344,12 +413,12 @@ public class RedTele extends LinearOpMode {
             telemetry.addLine("flp UP");
             currentState = poseControlState.FREE;
 
-            if(flpPosTarget-flpAddition<=-flpLimit)
+            if(flpPosTarget-20<=-flpLimit)
             {
                 flpPosTarget-=Math.abs(flpPosTarget+flpLimit);
             }
             else {
-                flpPosTarget-=flpAddition;
+                flpPosTarget-=20;
             }
         }
         //endregion
@@ -363,6 +432,8 @@ public class RedTele extends LinearOpMode {
             currentState = poseControlState.HIGH;
             if(flpPosTarget>-2000) {
                 extTarget = 1600;
+                spin.setPosition(0.77 + 0.1217 - 0.0528);
+                smallWrist.setPosition(0.8389);
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
@@ -370,32 +441,26 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
             }
-            else {
-
-            }
         }
         //endregion
 
         //region LOW POSITION
         if(currentState!= poseControlState.LOW && currG2.left_bumper && !oldG2.left_bumper)
         {
-            telemetry.addLine("TO LOW POSITION");
-            currentState = poseControlState.LOW;
+
         }
         //endregion
 
         //region HOME POSITION
         if(currentState!= poseControlState.HOME && currG2.x && !oldG2.x)
         {
-            telemetry.addLine("TO HOME POSITION");
-            currentState = poseControlState.HOME;
+
         }
         //endregion
 
         //region PICKUP POSITION
         if(currentState!= poseControlState.PICKUP && currG2.a && !oldG2.a) {
-            telemetry.addLine("TO PICKUP POSITION");
-            currentState = poseControlState.PICKUP;
+
         }
         //endregion
 
@@ -410,9 +475,10 @@ public class RedTele extends LinearOpMode {
     public void extCONTROLLER()
     {
         ext.setPID(extP, extI, extD);
-        int extPose = armMotor.getCurrentPosition();
-        double extPwr = ext.calculate(extPose, extTarget) + (Math.cos(Math.toRadians(extTarget/ticksPerDegree)) * extF);
-        armMotor.setPower(extPwr *(1/3.0));
+        int extPose = -extLMotor.getCurrentPosition();
+        double extPwr = ext.calculate(extPose, extTarget);
+        extLMotor.setPower(-extPwr);
+        extRMotor.setPower(extPwr);
 
         telemetry.addData("extPos ", extPose);
         telemetry.addData("extTarget ", extTarget);
@@ -429,6 +495,12 @@ public class RedTele extends LinearOpMode {
 
         double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
         flipMotor.setVelocity(velocityVal);
+
+        /*double veloTarget = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
+        telemetry.addData("targetvelo",veloTarget);
+        double neededPower = flpVelocityCONTROLLER(veloTarget, flipMotor.getVelocity(), time);
+        telemetry.addData("power",neededPower);
+        flipMotor.setPower(neededPower);*/
     }
 
     //TELEMETRY
@@ -448,8 +520,8 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("flpTarget", flpPosTarget);
 
         telemetry.addData("ext TARGET - ", extTarget);
-        telemetry.addData("claw - ", clawServo.getPosition());
+        telemetry.addData("spinner - ", spin.getPosition());
+        telemetry.addData("wrist - ", smallWrist.getPosition());
+        telemetry.addData("claw - ", claw.getPosition());
     }
 }
-
-//0.3317 0.2789
