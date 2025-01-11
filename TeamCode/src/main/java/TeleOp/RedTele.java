@@ -47,6 +47,10 @@ public class RedTele extends LinearOpMode {
     private double multiply;
     GoBildaPinpointDriver odo;
     double oldTime = 0;
+    boolean hangPhaseOne = true;
+    IMU imu;
+    IMU.Parameters parameters;
+    double extPercentage;
     //endregion
 
     //region DRIVER B MATERIAL
@@ -135,9 +139,16 @@ public class RedTele extends LinearOpMode {
         currG2 = new Gamepad();
         oldG2 = new Gamepad();
 
+        //mailbox
+        imu = hardwareMap.get(IMU.class, "imu");
+        parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        imu.initialize(parameters);
+
         //odometry
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-84.0, -168.0);
+        odo.setOffsets(-3, -26);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
@@ -194,8 +205,9 @@ public class RedTele extends LinearOpMode {
         currG2.copy(gamepad2);
         telemetry.update();
         drive.update();
+        //imu.initialize(parameters);
         odo.update(GoBildaPinpointDriver.readData.ONLY_UPDATE_HEADING);
-        poseEstimate = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading());
+        //poseEstimate = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading());
 
         //CONTROLS
         driverAControls();
@@ -241,11 +253,11 @@ public class RedTele extends LinearOpMode {
         }
 
         //FIELD CENTRIC
-        poseEstimate = drive.getPoseEstimate();
+        //poseEstimate = drive.getPoseEstimate();
         Vector2d input = new Vector2d(
                 -((gamepad1.left_stick_y)* multiply)/speed,
                 -((gamepad1.left_stick_x)* multiply)/speed
-        ).rotated(-poseEstimate.getHeading()); // -odo.getHeading()
+        ).rotated(-odo.getHeading()); // -odo.getHeading() -poseEstimate.getHeading()
         drive.setWeightedDrivePower(
                 new Pose2d(
                         input.getX(),
@@ -253,6 +265,53 @@ public class RedTele extends LinearOpMode {
                         ((gamepad1.right_stick_x * multiply)/speed)
                 )
         );
+        drive.update();
+
+        //HANG
+        if(currG1.right_bumper && currG1.left_bumper)
+        {
+            if(hangPhaseOne)
+            {
+                telemetry.addLine("HANG PHASE ONE");
+                if(flpPosTarget<200) {
+                    extTarget = 1160;
+                    flpPosTarget = 0;
+                    spin.setPosition(0.1567);
+                    bigWristR.setPosition(0.88);
+                    bigWristL.setPosition(0.1194);
+                    smallWrist.setPosition(0.1567);
+                }
+                else {
+                    extTarget = 0;
+                    jerkTimer.reset();
+                    while(jerkTimer.time() < 0.3) {
+                        driverAControls();
+                        extCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                    flpPosTarget = 0;
+                    while(jerkTimer.time() < 1) {
+                        driverAControls();
+                        extCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                    spin.setPosition(0.1567);
+                    bigWristR.setPosition(0.88);
+                    bigWristL.setPosition(0.1194);
+                    smallWrist.setPosition(0.1567);
+                    extTarget = 1160;
+                    while(jerkTimer.time() < 0.5) {
+                        driverAControls();
+                        extCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                }
+            }
+            else{
+                telemetry.addLine("HANG PHASE TWO");
+                extTarget = 0;
+            }
+        }
     }
     public void driverBControls()
     {
@@ -262,9 +321,12 @@ public class RedTele extends LinearOpMode {
             editMode = false;
             gameModeB = speedControlState.NORMAL;
             notNormalLimits = false;
+            gamepad2.setLedColor(0, 255, 0, Gamepad.LED_DURATION_CONTINUOUS);
+
         }
         else {
             editMode = true;
+            gamepad2.setLedColor(255, 0, 125, Gamepad.LED_DURATION_CONTINUOUS);
         }
         //endregion
 
@@ -388,7 +450,7 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region EXTENDER
-            if(gamepad2.dpad_up && (extTarget<=1500&&flpPosTarget<1000) || (extTarget<=1240&&flpPosTarget>1000))
+            if(gamepad2.dpad_up && extTarget<=1500)
             {
                 telemetry.addLine("ext UP");
                 currentState = poseControlState.FREE;
@@ -411,21 +473,21 @@ public class RedTele extends LinearOpMode {
                 else {
                     extTarget-=40;
                 }
-
-                //COMBO MOVEMENT
-                if(flpPosTarget>=1400)
-                {
-                    double extPercentage = (extTarget-1400.0)/1500;
-                    spin.setPosition(0.1528);
-                    smallWrist.setPosition(0.1517 + ((0.2267-0.1517)*extPercentage));
-                    bigWristL.setPosition(0.71 + ((0.74-0.71)*extPercentage));
-                    bigWristR.setPosition(0.2894 - ((0.2894-0.2594)*extPercentage));
-                    //smallWrist - 0.1517 - 0.2267
-                    //bigWristL - 0.71 - 0.74
-                    //bigWristR - 0.2894 - 0.2594
-                }
             }
             //endregion
+
+            //COMBO MOVEMENT
+            /*if(flpPosTarget>=1300)
+            {
+                extPercentage = 1-(extTarget-1400.0)/1500;
+                spin.setPosition(0.1528);
+                smallWrist.setPosition(0.1517 + ((0.2267-0.1517)*extPercentage));
+                bigWristL.setPosition(0.71 + ((0.74-0.71)*extPercentage));
+                bigWristR.setPosition(0.2894 - ((0.2894-0.2594)*extPercentage));
+                //smallWrist - 0.1517 - 0.2267
+                //bigWristL - 0.71 - 0.74
+                //bigWristR - 0.2894 - 0.2594
+            }*/
 
             //region FLIPPER
             if(gamepad2.dpad_left && flpPosTarget>=0)
@@ -456,11 +518,11 @@ public class RedTele extends LinearOpMode {
             }
 
             //COMBO MOVEMENT
-            if(extTarget>=200)
+            /*if(extTarget>=200)
             {
                 double flpPercentage = (flpPosTarget/1620.0);
                 extTarget -= extTarget*flpPercentage;
-            }
+            }*/
             //endregion
         }
         else {
@@ -814,6 +876,8 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("flpPosition ", flipMotor.getCurrentPosition());
         telemetry.addData("flpTarget", flpPosTarget);
         telemetry.addData("ext TARGET - ", extTarget);
+        telemetry.addData("\next percent - ", extPercentage);
+
 
         telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
