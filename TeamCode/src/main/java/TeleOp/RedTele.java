@@ -58,7 +58,6 @@ public class RedTele extends LinearOpMode {
     private double multiply;
     GoBildaPinpointDriver odo;
     double oldTime = 0;
-    boolean hangPhaseOne = true;
     IMU imu;
     IMU.Parameters parameters;
     double extPercentage;
@@ -99,9 +98,17 @@ public class RedTele extends LinearOpMode {
         PRECISION,
         SUPERSPEED
     }
+    private enum hangControlState
+    {
+        PHASEONE,
+        PHASETWO,
+        CONFIRMATION,
+        DISENGAGE
+    }
     speedControlState gameModeA;
     speedControlState gameModeB;
-    poseControlState currentState;
+    hangControlState hangState;
+    poseControlState controlState;
     boolean editMode = true;
     boolean notNormalLimits = false;
     //endregion
@@ -192,9 +199,10 @@ public class RedTele extends LinearOpMode {
 
         movementInitI();
         clawIH = true;
-        currentState = poseControlState.FREE;
+        controlState = poseControlState.FREE;
         gameModeA = speedControlState.NORMAL;
         gameModeB = speedControlState.NORMAL;
+        hangState = hangControlState.PHASEONE;
         editMode = true;
         waitForStart();
 
@@ -222,7 +230,7 @@ public class RedTele extends LinearOpMode {
         //CONTROLS
         driverAControls();
         driverBControls();
-        telemetry.addData("CURRENT POSITION STATE", currentState);
+        telemetry.addData("CURRENT POSITION STATE", controlState);
         stateCheck();
 
         //EXTENDER & FLIPPER
@@ -234,11 +242,15 @@ public class RedTele extends LinearOpMode {
     public void driverAControls()
     {
         //region SPEED CHANGES | LEFT TRIGGER FAST | RIGHT TRIGGER SLOW
-        if (gamepad1.right_trigger > 0) {
+        gameModeA = speedControlState.NORMAL;
+        gamepad1.setLedColor(0, 0, (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+        if (gamepad1.right_trigger > 0.3) {
             gameModeA = speedControlState.PRECISION;
+            gamepad1.setLedColor((38/255.0), (255/255.0), 0, Gamepad.LED_DURATION_CONTINUOUS);
         }
-        if (gamepad1.left_trigger > 0) {
+        if (gamepad1.left_trigger > 0.3) {
             gameModeA = speedControlState.SUPERSPEED;
+            gamepad1.setLedColor((255/255.0), 0, (125/255.0), Gamepad.LED_DURATION_CONTINUOUS);
         }
         switch(gameModeA){
             case NORMAL:
@@ -257,9 +269,9 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region FIELD CENTRIC RESET
-        if((currG1.a && currG1.b) || (currG1.a && currG1.y) || (currG1.a && currG1.x) || (currG1.b && currG1.y) || (currG1.b && currG1.x) || (currG1.x && currG1.y))
+        if(!oldG1.a && !oldG2.b && !oldG2.x && !oldG2.y && ((currG1.a && currG1.b) || (currG1.a && currG1.y) || (currG1.a && currG1.x) || (currG1.b && currG1.y) || (currG1.b && currG1.x) || (currG1.x && currG1.y)))
         {
-            odo.recalibrateIMU();
+            odo.resetPosAndIMU();
             gamepad1.runLedEffect(resetField);
         }
         //endregion
@@ -267,8 +279,8 @@ public class RedTele extends LinearOpMode {
         //region FIELD CENTRIC
         //poseEstimate = drive.getPoseEstimate();
         Vector2d input = new Vector2d(
-                -((gamepad1.left_stick_y)* multiply)/speed,
-                -((gamepad1.left_stick_x)* multiply)/speed
+                ((gamepad1.left_stick_y)* multiply)/speed,
+                ((gamepad1.left_stick_x)* multiply)/speed
         ).rotated(-odo.getHeading()); // -odo.getHeading() -poseEstimate.getHeading()
         drive.setWeightedDrivePower(
                 new Pose2d(
@@ -281,56 +293,91 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region HANG
-        if(currG1.right_bumper && currG1.left_bumper)
+        if(false && currG1.right_bumper && currG1.left_bumper && !oldG2.right_bumper && !oldG2.left_bumper)
         {
-            if(hangPhaseOne)
+            switch(hangState)
             {
-                telemetry.addLine("HANG PHASE ONE");
-                gamepad2.setLedColor(0, (255/255.0), (149/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-                if(flpPosTarget<200) {
-                    extTarget = 1160;
-                    flpPosTarget = 0;
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                }
-                else {
+                case PHASEONE:
+                    telemetry.addLine("HANG PHASE ONE");
+                    gamepad2.setLedColor((255/255.0), 0,(174/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+                    //region PHASE ONE
+                    if(flpPosTarget>1200) {
+                        extTarget = 0;
+                        flpPosTarget = 1200;
+                        spin.setPosition(0.1528);
+                        bigWristR.setPosition(0.48);
+                        bigWristL.setPosition(0.5183);
+                        smallWrist.setPosition(0.3206);
+                    }
+                    else {
+                        extTarget = 0;
+                        jerkTimer.reset();
+                        while(jerkTimer.time() < 0.3) {
+                            driverAControls();
+                            extCONTROLLER();
+                            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                        }
+                        flpPosTarget = 1650;
+                        jerkTimer.reset();
+                        while(jerkTimer.time() < 1) {
+                            driverAControls();
+                            extCONTROLLER();
+                            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                        }
+                        spin.setPosition(0.1528);
+                        bigWristR.setPosition(0.48);
+                        bigWristL.setPosition(0.5183);
+                        smallWrist.setPosition(0.3206);
+                    }
+                    //endregion
+                    hangState = hangControlState.PHASETWO;
+                    break;
+                case PHASETWO:
+                    telemetry.addLine("HANG PHASE TWO");
+                    gamepad2.setLedColor((174/255.0), 0,(255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+
+                    //region PHASE TWO
                     extTarget = 0;
-                    jerkTimer.reset();
-                    while(jerkTimer.time() < 0.3) {
-                        driverAControls();
+                    while(-extLMotor.getCurrentPosition()>1000) {
                         extCONTROLLER();
+                        drive.setMotorPowers(0.05,0.1,0.1,0.05);
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
-                    flpPosTarget = 0;
-                    while(jerkTimer.time() < 1) {
-                        driverAControls();
+                    while(-extLMotor.getCurrentPosition()>800) {
                         extCONTROLLER();
+                        drive.setMotorPowers(0,0.1,0.1,0);
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                    extTarget = 1160;
-                    while(jerkTimer.time() < 0.5) {
-                        driverAControls();
+                    //flpPosTarget=1300;
+                    while(-extLMotor.getCurrentPosition()>500) {
                         extCONTROLLER();
+                        drive.setMotorPowers(0,0.2,0.2,0);
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
-                }
-            }
-            else{
-                telemetry.addLine("HANG PHASE TWO");
-                gamepad2.setLedColor((183/255.0), 0, (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-                extTarget = 0;
-                while(opModeIsActive())
-                {
-                    extCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    RAINBOW(0.005);
-                }
+                    //endregion
+
+                    while(opModeIsActive())
+                    {
+                        extCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                        RAINBOW(0.005);
+                        if(currG1.right_bumper && currG1.left_bumper && !oldG2.right_bumper && !oldG2.left_bumper)
+                        {
+                            hangState = hangControlState.CONFIRMATION;
+                            break;
+                        }
+                    }
+                    break;
+                case CONFIRMATION:
+                    telemetry.addLine("HANG CONFIRMATION");
+                    gamepad2.setLedColor(0, (26/255.0), (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+                    hangState = hangControlState.DISENGAGE;
+                    break;
+                case DISENGAGE:
+                    telemetry.addLine("HANG DISENGAGE");
+                    gamepad2.setLedColor(0, (238/255.0), (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+                    hangState = hangControlState.PHASEONE;
+                    break;
             }
         }
         //endregion
@@ -380,14 +427,14 @@ public class RedTele extends LinearOpMode {
             if(gamepad2.b && bigWristR.getPosition()>=0)
             {
                 telemetry.addLine("WRIST MOVEMENT");
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
                 bigWristL.setPosition(bigWristL.getPosition() + 0.01);
                 bigWristR.setPosition(bigWristR.getPosition() - 0.01);
             }
             else if(gamepad2.x && bigWristR.getPosition()<=0.87+0.01)
             {
                 telemetry.addLine("WRIST MOVEMENT");
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
                 bigWristL.setPosition(bigWristL.getPosition() - 0.01);
                 bigWristR.setPosition(bigWristR.getPosition() + 0.01);
             }
@@ -407,18 +454,18 @@ public class RedTele extends LinearOpMode {
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 smallWrist.setPosition(smallWrist.getPosition() + 0.005);
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
             }
             else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1519-0.005)
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 smallWrist.setPosition(smallWrist.getPosition() - 0.005);
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
             }
             if(currG2.left_stick_button && !oldG2.left_stick_button)
             {
                 telemetry.addLine("WRIST MOVEMENT");
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
                 smallWristPos ++;
                 if(smallWristPos>2)
                 {
@@ -444,7 +491,7 @@ public class RedTele extends LinearOpMode {
             {
                 telemetry.addLine("SPINNER MOVEMENT");
                 spin.setPosition(spin.getPosition() + (gamepad2.right_stick_x * 0.05));
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
             }
             if(currG2.right_stick_button && !oldG2.right_stick_button)
             {
@@ -475,48 +522,66 @@ public class RedTele extends LinearOpMode {
             if(gamepad2.dpad_up && extTarget<=1500)
             {
                 telemetry.addLine("ext UP");
-                currentState = poseControlState.FREE;
-                if(extTarget+40>=1500-40)
+                controlState = poseControlState.FREE;
+                if(flpPosTarget<200)
                 {
-                    extTarget+=Math.abs(Math.abs(extTarget)-1500);
+                    if (extTarget + 40 >= 1500 - 40) {
+                        extTarget += Math.abs(Math.abs(extTarget) - 1500);
+                    } else {
+                        extTarget += 40;
+                    }
                 }
-                else {
-                    extTarget+=40;
+                else if(flpPosTarget>=1600)
+                {
+                    if (extTarget + 40 >= 1120 - 40) {
+                        extTarget += Math.abs(Math.abs(extTarget) - 1120);
+                    } else {
+                        extTarget += 40;
+                    }
                 }
             }
             else if(gamepad2.dpad_down && extTarget>=0)
             {
                 telemetry.addLine("ext DOWN");
-                currentState = poseControlState.FREE;
-                if(extTarget-40<=0)
-                {
-                    extTarget-=Math.abs(extTarget);
+                controlState = poseControlState.FREE;
+                if(flpPosTarget<200) {
+                    if (extTarget - 40 <= 0) {
+                        extTarget -= Math.abs(extTarget);
+                    } else {
+                        extTarget -= 40;
+                    }
                 }
-                else {
-                    extTarget-=40;
+                else if(flpPosTarget>=1600)
+                {
+                    if (extTarget - 40 <= 40) {
+                        extTarget -= Math.abs(extTarget-40);
+                    } else {
+                        extTarget -= 40;
+                    }
                 }
             }
             //endregion
 
             //region COMBO MOVEMENT PICKUP
-            /*if(flpPosTarget>=1300)
+            if(controlState == poseControlState.PICKUP)
             {
-                extPercentage = 1-(extTarget-1400.0)/1500;
+                extPercentage = (extTarget-40.0)/1120;
                 spin.setPosition(0.1528);
-                smallWrist.setPosition(0.1517 + ((0.2267-0.1517)*extPercentage));
-                bigWristL.setPosition(0.71 + ((0.74-0.71)*extPercentage));
-                bigWristR.setPosition(0.2894 - ((0.2894-0.2594)*extPercentage));
-                //smallWrist - 0.1517 - 0.2267
-                //bigWristL - 0.71 - 0.74
-                //bigWristR - 0.2894 - 0.2594
-            }*/
+                smallWrist.setPosition(0.1706 + ((0.2556-0.1706)*extPercentage));
+                bigWristL.setPosition(0.6989 + ((0.7389-0.6989)*extPercentage));
+                bigWristR.setPosition(0.3 - ((0.3-0.26)*extPercentage));
+                //EXT          40         1120
+                //smallWrist - 0.1706 - 0.2556
+                //bigWristL - 0.6989 - 0.7389
+                //bigWristR - 0.3 - 0.26
+            }
             //endregion
 
             //region FLIPPER
             if(gamepad2.dpad_left && flpPosTarget>=0)
             {
                 telemetry.addLine("flp UP");
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
 
                 if(flpPosTarget-20<=0)
                 {
@@ -529,7 +594,7 @@ public class RedTele extends LinearOpMode {
             else if(gamepad2.dpad_right && flpPosTarget<1620 && !(extTarget>500 && flpPosTarget<1200))
             {
                 telemetry.addLine("flp DOWN");
-                currentState = poseControlState.FREE;
+                controlState = poseControlState.FREE;
 
                 if(flpPosTarget+20>=1620)
                 {
@@ -568,10 +633,10 @@ public class RedTele extends LinearOpMode {
     public void setStates()
     {
         //region HIGH POSITION
-        if(currentState!= poseControlState.HIGH && currG2.y && !oldG2.y)
+        if(controlState != poseControlState.HIGH && currG2.y && !oldG2.y)
         {
             telemetry.addLine("HIGH POSITION");
-            currentState = poseControlState.HIGH;
+            controlState = poseControlState.HIGH;
             if(flpPosTarget<200) {
                 extTarget = 1160;
                 flpPosTarget = 0;
@@ -610,10 +675,10 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region LOW POSITION
-        if(currentState!= poseControlState.LOW && currG2.dpad_down && !oldG2.dpad_down)
+        if(controlState != poseControlState.LOW && currG2.dpad_down && !oldG2.dpad_down)
         {
             telemetry.addLine("LOW POSITION");
-            currentState = poseControlState.LOW;
+            controlState = poseControlState.LOW;
             if(flpPosTarget<200) {
                 extTarget = 420;
                 flpPosTarget = 0;
@@ -653,10 +718,10 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region HOME POSITION
-        if(currentState!= poseControlState.HOME && (currG2.dpad_right && !oldG2.dpad_right))
+        if(controlState != poseControlState.HOME && (currG2.dpad_right && !oldG2.dpad_right))
         {
             telemetry.addLine("HOME POSITION");
-            currentState = poseControlState.HOME;
+            controlState = poseControlState.HOME;
             if(flpPosTarget<200) {
                 extTarget = 0;
                 flpPosTarget = 0;
@@ -689,9 +754,9 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region WALL POSITION
-        if(currentState!= poseControlState.WALL && currG2.x && !oldG2.x) {
+        if(controlState != poseControlState.WALL && currG2.x && !oldG2.x) {
             telemetry.addLine("WALL POSITION");
-            currentState = poseControlState.WALL;
+            controlState = poseControlState.WALL;
             if(flpPosTarget>1200) {
                 extTarget = 0;
                 flpPosTarget = 1650;
@@ -724,10 +789,10 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region PICKUP POSITION
-        if(currentState!= poseControlState.PICKUP && currG2.a && !oldG2.a)
+        if(controlState != poseControlState.PICKUP && currG2.a && !oldG2.a)
         {
             telemetry.addLine("PICKUP POSITION");
-            currentState = poseControlState.PICKUP;
+            controlState = poseControlState.PICKUP;
             if(flpPosTarget>1200) {
                 extTarget = 560;
                 flpPosTarget = 1650;
@@ -784,10 +849,10 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region HIGHBASKET POSITION
-        if(currentState!= poseControlState.HIGHBASKET && currG2.dpad_up && !oldG2.dpad_up)
+        if(controlState != poseControlState.HIGHBASKET && currG2.dpad_up && !oldG2.dpad_up)
         {
             telemetry.addLine("HIGHBASKET POSITION");
-            currentState = poseControlState.HIGHBASKET;
+            controlState = poseControlState.HIGHBASKET;
             if(flpPosTarget<200) {
                 extTarget = 1160;
                 flpPosTarget = 0;
@@ -827,10 +892,10 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region LOWBASKET POSITION
-        if(currentState!= poseControlState.LOWBASKET && currG2.dpad_left && !oldG2.dpad_left)
+        if(controlState != poseControlState.LOWBASKET && currG2.dpad_left && !oldG2.dpad_left)
         {
             telemetry.addLine("LOWBASKET POSITION");
-            currentState = poseControlState.LOWBASKET;
+            controlState = poseControlState.LOWBASKET;
             if(flpPosTarget<200) {
                 extTarget = 420;
                 flpPosTarget = 0;
