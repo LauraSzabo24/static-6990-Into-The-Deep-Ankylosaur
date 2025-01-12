@@ -170,12 +170,6 @@ public class RedTele extends LinearOpMode {
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
-        telemetry.addData("Status", "Initialized");
-        telemetry.addData("X offset", odo.getXOffset());
-        telemetry.addData("Y offset", odo.getYOffset());
-        telemetry.addData("Device Version Number:", odo.getDeviceVersion());
-        telemetry.addData("Device Scalar", odo.getYawScalar());
-        telemetry.update();
     }
     public void movementInitI()
     {
@@ -562,7 +556,7 @@ public class RedTele extends LinearOpMode {
             }
             //endregion
 
-            //region COMBO MOVEMENT PICKUP
+            //region VARIABLE PICKUP
             if(controlState == poseControlState.PICKUP)
             {
                 extPercentage = (extTarget-40.0)/1120;
@@ -1041,11 +1035,16 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("ext TARGET - ", extTarget);
         telemetry.addData("\next percent - ", extPercentage);
 
-
-        telemetry.addData("\nspinner - ", spin.getPosition());
+        /*telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
         telemetry.addData("big wrist right - ", bigWristR.getPosition());
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
-        telemetry.addData("claw - ", claw.getPosition());
+        telemetry.addData("claw - ", claw.getPosition());*/
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.addData("X offset", odo.getXOffset());
+        telemetry.addData("Y offset", odo.getYOffset());
+        telemetry.addData("Device Version Number:", odo.getDeviceVersion());
+        telemetry.addData("Device Scalar", odo.getYawScalar());
     }
 }
