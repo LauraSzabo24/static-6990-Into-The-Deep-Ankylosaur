@@ -22,6 +22,17 @@ import Autonomous.Mailbox;
 @TeleOp
 @Config
 public class RedTele extends LinearOpMode {
+    //region LED EFFECTS
+    Gamepad.LedEffect resetField = new Gamepad.LedEffect.Builder()
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .build();
+    //endregion
+
     //region FLIPPER CONTROLLER
     //POSITION
     ElapsedTime timer = new ElapsedTime();
@@ -185,7 +196,6 @@ public class RedTele extends LinearOpMode {
         gameModeA = speedControlState.NORMAL;
         gameModeB = speedControlState.NORMAL;
         editMode = true;
-
         waitForStart();
 
         movementInitII();
@@ -246,13 +256,15 @@ public class RedTele extends LinearOpMode {
         }
         //endregion
 
-        //FIELD CENTRIC RESET
+        //region FIELD CENTRIC RESET
         if((currG1.a && currG1.b) || (currG1.a && currG1.y) || (currG1.a && currG1.x) || (currG1.b && currG1.y) || (currG1.b && currG1.x) || (currG1.x && currG1.y))
         {
             odo.recalibrateIMU();
+            gamepad1.runLedEffect(resetField);
         }
+        //endregion
 
-        //FIELD CENTRIC
+        //region FIELD CENTRIC
         //poseEstimate = drive.getPoseEstimate();
         Vector2d input = new Vector2d(
                 -((gamepad1.left_stick_y)* multiply)/speed,
@@ -266,13 +278,15 @@ public class RedTele extends LinearOpMode {
                 )
         );
         drive.update();
+        //endregion
 
-        //HANG
+        //region HANG
         if(currG1.right_bumper && currG1.left_bumper)
         {
             if(hangPhaseOne)
             {
                 telemetry.addLine("HANG PHASE ONE");
+                gamepad2.setLedColor(0, (255/255.0), (149/255.0), Gamepad.LED_DURATION_CONTINUOUS);
                 if(flpPosTarget<200) {
                     extTarget = 1160;
                     flpPosTarget = 0;
@@ -309,9 +323,17 @@ public class RedTele extends LinearOpMode {
             }
             else{
                 telemetry.addLine("HANG PHASE TWO");
+                gamepad2.setLedColor((183/255.0), 0, (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
                 extTarget = 0;
+                while(opModeIsActive())
+                {
+                    extCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    RAINBOW(0.005);
+                }
             }
         }
+        //endregion
     }
     public void driverBControls()
     {
@@ -321,12 +343,12 @@ public class RedTele extends LinearOpMode {
             editMode = false;
             gameModeB = speedControlState.NORMAL;
             notNormalLimits = false;
-            gamepad2.setLedColor(0, 255, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor((38/255.0), (255/255.0), 0, Gamepad.LED_DURATION_CONTINUOUS);
 
         }
         else {
             editMode = true;
-            gamepad2.setLedColor(255, 0, 125, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor((255/255.0), 0, (125/255.0), Gamepad.LED_DURATION_CONTINUOUS);
         }
         //endregion
 
@@ -476,7 +498,7 @@ public class RedTele extends LinearOpMode {
             }
             //endregion
 
-            //COMBO MOVEMENT
+            //region COMBO MOVEMENT PICKUP
             /*if(flpPosTarget>=1300)
             {
                 extPercentage = 1-(extTarget-1400.0)/1500;
@@ -488,6 +510,7 @@ public class RedTele extends LinearOpMode {
                 //bigWristL - 0.71 - 0.74
                 //bigWristR - 0.2894 - 0.2594
             }*/
+            //endregion
 
             //region FLIPPER
             if(gamepad2.dpad_left && flpPosTarget>=0)
@@ -517,8 +540,8 @@ public class RedTele extends LinearOpMode {
                 }
             }
 
-            //COMBO MOVEMENT
-            /*if(extTarget>=200)
+            //COMBO MOVEMENT EXTENSION
+           /* if(extTarget>=200)
             {
                 double flpPercentage = (flpPosTarget/1620.0);
                 extTarget -= extTarget*flpPercentage;
@@ -559,13 +582,13 @@ public class RedTele extends LinearOpMode {
             }
             else {
                 extTarget = 0;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3) {
+                while(-extLMotor.getCurrentPosition()>10) {
                     driverAControls();
                     extCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -576,6 +599,7 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(0.1194);
                 smallWrist.setPosition(0.1567);
                 extTarget = 1160;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
                     extCONTROLLER();
@@ -607,6 +631,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -617,6 +642,7 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(0.1194);
                 smallWrist.setPosition(0.1567);
                 extTarget = 420;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
                     extCONTROLLER();
@@ -648,6 +674,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -682,6 +709,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 1650;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -717,6 +745,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 1650;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -727,6 +756,7 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(0.7194);
                 smallWrist.setPosition(0.2061);
                 extTarget = 560;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
                     extCONTROLLER();
@@ -737,7 +767,8 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region JERK
-        if( flipMotor.getCurrentPosition()>-2000 && currG2.left_bumper && !oldG2.left_bumper) {
+        if( flipMotor.getCurrentPosition()>-2000 && currG2.left_bumper && !oldG2.left_bumper)
+        {
             telemetry.addLine("JERK");
             if(extTarget>=300) {
                 extTarget = extTarget - 300;
@@ -774,6 +805,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -784,6 +816,7 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(0.1194);
                 smallWrist.setPosition(0.1567);
                 extTarget = 1160;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
                     extCONTROLLER();
@@ -815,6 +848,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extCONTROLLER();
@@ -825,6 +859,7 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(0.1194);
                 smallWrist.setPosition(0.1567);
                 extTarget = 420;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
                     extCONTROLLER();
@@ -861,7 +896,70 @@ public class RedTele extends LinearOpMode {
         flipMotor.setVelocity(velocityVal);
     }
 
-    //TELEMETRY
+    //RANDOM
+    public void RAINBOW(double speed)
+    {
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(i, 1, 0, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(0, 1, i, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(0, i, 1, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(i, 0, 1, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(1, 0, i, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+    }
     public void stateCheck()
     {
         if(clawIH)
