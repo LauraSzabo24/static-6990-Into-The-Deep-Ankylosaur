@@ -31,6 +31,8 @@ public class RedTele extends LinearOpMode {
             .addStep(0.5, 0.5, 0.5, 150)
             .addStep(0, 0, 0, 150)
             .build();
+    ElapsedTime flashTimer = new ElapsedTime();
+
     //endregion
 
     //region FLIPPER CONTROLLER
@@ -39,14 +41,14 @@ public class RedTele extends LinearOpMode {
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 2.5, flpPI = 0, flpPD = 0.1;
+    public static double flpPP = 2.5, flpPI = 0, flpPD = 0;
     public static int flpPosTarget = 0;
     //endregion
 
     //region EXTENDER CONTROLLER
     public static double ticksPerDegree = 537.7;
     private PIDController ext;
-    public static double extP = 0.005, extI = 0.03, extD = 0.00035;
+    public static double extP = 0.005, extI = 0.03, extD = 0;
     public static int extTarget;
     FtcDashboard dashboard;
     //endregion
@@ -166,8 +168,8 @@ public class RedTele extends LinearOpMode {
 
         //odometry
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-3, -26);
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
+        odo.setOffsets(-50, 180);
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
     }
@@ -237,7 +239,9 @@ public class RedTele extends LinearOpMode {
     {
         //region SPEED CHANGES | LEFT TRIGGER FAST | RIGHT TRIGGER SLOW
         gameModeA = speedControlState.NORMAL;
-        gamepad1.setLedColor(0, 0, (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+        if(flashTimer.time()>2) {
+            gamepad1.setLedColor(0, 0, (255 / 255.0), Gamepad.LED_DURATION_CONTINUOUS);
+        }
         if (gamepad1.right_trigger > 0.3) {
             gameModeA = speedControlState.PRECISION;
             gamepad1.setLedColor((38/255.0), (255/255.0), 0, Gamepad.LED_DURATION_CONTINUOUS);
@@ -267,6 +271,7 @@ public class RedTele extends LinearOpMode {
         {
             odo.resetPosAndIMU();
             gamepad1.runLedEffect(resetField);
+            flashTimer.reset();
         }
         //endregion
 
@@ -513,14 +518,14 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region EXTENDER
-            if(gamepad2.dpad_up && extTarget<=1500)
+            if(gamepad2.dpad_up && extTarget<=1600)
             {
                 telemetry.addLine("ext UP");
                 controlState = poseControlState.FREE;
                 if(flpPosTarget<200)
                 {
                     if (extTarget + 40 >= 1500 - 40) {
-                        extTarget += Math.abs(Math.abs(extTarget) - 1500);
+                        extTarget += Math.abs(Math.abs(extTarget) - 1600);
                     } else {
                         extTarget += 40;
                     }
@@ -1041,10 +1046,8 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
         telemetry.addData("claw - ", claw.getPosition());*/
 
-        telemetry.addData("Status", "Initialized");
-        telemetry.addData("X offset", odo.getXOffset());
-        telemetry.addData("Y offset", odo.getYOffset());
-        telemetry.addData("Device Version Number:", odo.getDeviceVersion());
-        telemetry.addData("Device Scalar", odo.getYawScalar());
+        telemetry.addData("X ODOMETRY POSITION", odo.getPosX());
+        telemetry.addData("Y ODOMETRY POSITION", odo.getPosY());
+        telemetry.addData("HEADING ODOMETRY POSITION", odo.getHeading());
     }
 }
