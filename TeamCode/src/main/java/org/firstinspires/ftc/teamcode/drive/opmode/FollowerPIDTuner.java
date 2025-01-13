@@ -6,8 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import Autonomous.Mailbox;
 
-import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
-import org.firstinspires.ftc.teamcode.drive.Unused.DI_MecanumDrive;
+import org.firstinspires.ftc.teamcode.drive.Unused.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 /*

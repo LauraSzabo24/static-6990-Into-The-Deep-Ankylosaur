@@ -11,7 +11,6 @@ import com.acmerobotics.roadrunner.trajectory.constraints.TranslationalVelocityC
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -20,62 +19,104 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
-import org.firstinspires.ftc.teamcode.drive.Unused.DI_MecanumDrive;
+import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
+import org.firstinspires.ftc.teamcode.drive.Unused.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 import java.util.Arrays;
 
-import TeleOp.RedTele;
-
 @Autonomous
 public class Red4Specimen extends OpMode {
+
+    //region LED EFFECTS
+    Gamepad.LedEffect resetField = new Gamepad.LedEffect.Builder()
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .addStep(0.5, 0.5, 0.5, 150)
+            .addStep(0, 0, 0, 150)
+            .build();
+    //endregion
+
     //region FLIPPER CONTROLLER
     //POSITION
     ElapsedTime timer = new ElapsedTime();
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 10, flpPI = 0, flpPD = 0;
+    public static double flpPP = 2.5, flpPI = 0, flpPD = 0.1;
     public static int flpPosTarget = 0;
-
-    //VELOCITY
-    private double flpVeloError = 0;
-    private double flpVeloISum = 0;
-    public static int flpVeloTarget = 0;
-    public static int testTarget = 1200;
-    public static double flpVP = 0.0002, flpVI = 0.004, flpVD = 0.0000001;  //RISING
     //endregion
 
     //region EXTENDER CONTROLLER
     public static double ticksPerDegree = 537.7;
     private PIDController ext;
-    public static double extP = 0.004, extI = 0.00, extD = 0.00015, extF = 0.003;
+    public static double extP = 0.005, extI = 0.03, extD = 0.00035;
     public static int extTarget;
     FtcDashboard dashboard;
     //endregion
 
     //region DRIVER A MATERIAL
-    IMU imu;
-    IMU.Parameters parameters;
-    Pose2d startPose;
     NewMecanumDrive drive;
     Pose2d poseEstimate;
     private double speed;
     private double multiply;
+    GoBildaPinpointDriver odo;
+    double oldTime = 0;
+    IMU imu;
+    IMU.Parameters parameters;
+    double extPercentage;
     //endregion
 
     //region DRIVER B MATERIAL
-    private Servo wristServo, spinnerServo, clawServo;
-    DcMotorEx flipMotor, armMotor;
+    private Servo smallWrist, bigWristR, bigWristL, spin, claw;
+    DcMotorEx flipMotor, extLMotor, extRMotor;
     boolean clawIH;
-    boolean pickupTwo = false;
     ElapsedTime jerkTimer = new ElapsedTime();
-    boolean jerked = false;
-    double extLimit = 1600;
-    double flpLimit = 4300;
-
     int spinnerPos = 0;
+    int smallWristPos = 0;
+    //endregion
+
+    //region GAMEPADS
+    Gamepad currG1;
+    Gamepad oldG1;
+    Gamepad currG2;
+    Gamepad oldG2;
+    //endregion
+
+    //region CONTROL STATE
+    private enum poseControlState
+    {
+        FREE,
+        PICKUP,
+        WALL,
+        LOW,
+        HIGH,
+        HOME,
+        LOWBASKET,
+        HIGHBASKET
+
+    }
+    private enum speedControlState
+    {
+        NORMAL,
+        PRECISION,
+        SUPERSPEED
+    }
+    private enum hangControlState
+    {
+        PHASEONE,
+        PHASETWO,
+        CONFIRMATION,
+        DISENGAGE
+    }
+    private speedControlState gameModeA;
+    private speedControlState gameModeB;
+    private hangControlState hangState;
+    private poseControlState controlState;
+    boolean editMode = true;
+    boolean notNormalLimits = false;
     //endregion
     TrajectorySequence preload, connection, cycleOne, cycleTwo, cycleThree;
     @Override
@@ -85,7 +126,7 @@ public class Red4Specimen extends OpMode {
         Mailbox mail = new Mailbox();
         hardwareInit();
         movementInitII();
-        startPose = new Pose2d(0, 0, Math.toRadians(90));
+        Pose2d startPose = new Pose2d(0, 0, Math.toRadians(90));
         drive.setPoseEstimate(startPose);
         TrajectoryVelocityConstraint slowConstraint = new MinVelocityConstraint(Arrays.asList(
                 new TranslationalVelocityConstraint(25),
@@ -100,17 +141,17 @@ public class Red4Specimen extends OpMode {
                     flpPosTarget = -1400;
                 })
                 .addDisplacementMarker(20,() -> {
-                    spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-                    wristServo.setPosition(0.95);//0.8389
+                    //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+                    //wristServo.setPosition(0.95);//0.8389
                 })
                 .addTemporalMarker(2.5,() -> {
-                    spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-                    wristServo.setPosition(1);
+                    //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+                    //wristServo.setPosition(1);
                     flpPosTarget = -1300;
                     extTarget = 1140;
                 })
                 .addTemporalMarker(3,() -> {
-                    clawServo.setPosition(0);
+                    //clawServo.setPosition(0);
                 })
                 .waitSeconds(2)
                 .addTemporalMarker(3.5,() -> {drive.followTrajectorySequenceAsync(connection, mail);})
@@ -139,15 +180,15 @@ public class Red4Specimen extends OpMode {
                 .addTemporalMarker(8,() -> {
                     extTarget = 250;
                     flpPosTarget = -3760; //3800
-                    clawServo.setPosition(0);
+                    //clawServo.setPosition(0);
                 })
                 .addTemporalMarker(8.5,() -> {
-                    spinnerServo.setPosition(0.20 + 0.1217 - 0.0528); //0.215
-                    wristServo.setPosition(0.6);
+                    //spinnerServo.setPosition(0.20 + 0.1217 - 0.0528); //0.215
+                    //wristServo.setPosition(0.6);
                 })
 
                 .addTemporalMarker(12,() -> {
-                    clawServo.setPosition(0.4);
+                    //clawServo.setPosition(0.4);
                 })
                 .addTemporalMarker(14,() -> {
                     extTarget = 500;
@@ -166,17 +207,17 @@ public class Red4Specimen extends OpMode {
                     flpPosTarget = -1900;
                 })
                 .addDisplacementMarker(20,() -> {
-                    spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-                    wristServo.setPosition(0.85);//0.8389
+                    //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+                    //wristServo.setPosition(0.85);//0.8389
                 })
                 .addTemporalMarker(4,() -> {
-                    spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-                    wristServo.setPosition(1);
+                    //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+                    //wristServo.setPosition(1);
                     flpPosTarget = -1400;
                     extTarget = 1140;
                 })
                 .addTemporalMarker(5,() -> {
-                    clawServo.setPosition(0);
+                    //clawServo.setPosition(0);
                 })
                 .waitSeconds(2)
 
@@ -186,9 +227,9 @@ public class Red4Specimen extends OpMode {
                     extTarget = 0;
                 })
                 .addTemporalMarker(9,() -> {
-                    wristServo.setPosition(0.39);
-                    spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
-                    clawServo.setPosition(0.4);
+                    //wristServo.setPosition(0.39);
+                    //spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
+                    //clawServo.setPosition(0.4);
                     flpPosTarget = 0;
                 })
                 .build();
@@ -214,8 +255,8 @@ public class Red4Specimen extends OpMode {
             jerkTimer.reset();
             while(jerkTimer.time() < 0.5) {
             }
-            spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-            wristServo.setPosition(0.8389);
+            //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+            //wristServo.setPosition(0.8389);
         }
         else {
             /*jerkTimer.reset();
@@ -250,10 +291,10 @@ public class Red4Specimen extends OpMode {
             extCONTROLLER();
             flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
         }
-        armMotor.setPower(0);
+        //armMotor.setPower(0);
 
-        spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-        wristServo.setPosition(0.7989);
+        //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+        //wristServo.setPosition(0.7989);
         jerkTimer.reset();
         while(jerkTimer.time() < 0.5) {
             flpPosTarget = -1160;
@@ -277,9 +318,9 @@ public class Red4Specimen extends OpMode {
             flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
         }
 
-        wristServo.setPosition(0.39);
-        spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
-        clawServo.setPosition(0.4);
+        //wristServo.setPosition(0.39);
+        //spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
+        //clawServo.setPosition(0.4);
         jerkTimer.reset();
         while(jerkTimer.time() < 0.5) {
             flpPosTarget = -200;
@@ -295,10 +336,10 @@ public class Red4Specimen extends OpMode {
             extCONTROLLER();
             flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
         }
-        armMotor.setPower(0);
-        spinnerServo.setPosition(0.215 + 0.1217 - 0.0528);
-        wristServo.setPosition(0.66);
-        clawServo.setPosition(0);
+        //armMotor.setPower(0);
+        //spinnerServo.setPosition(0.215 + 0.1217 - 0.0528);
+        //wristServo.setPosition(0.66);
+        //clawServo.setPosition(0);
         jerkTimer.reset();
         while (jerkTimer.time() < 0.5) {
             flpPosTarget = -3671;
@@ -309,22 +350,22 @@ public class Red4Specimen extends OpMode {
     {
         while (jerkTimer.time() < 3) {
         }
-        spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
-        wristServo.setPosition(0.95);
+        //spinnerServo.setPosition(0.77 + 0.1217 - 0.0528);
+        //wristServo.setPosition(0.95);
         extTarget = 1140;
         jerkTimer.reset();
         while (jerkTimer.time() < 0.6) {
         }
-        clawServo.setPosition(0);
+        //clawServo.setPosition(0);
     }
     public void extCONTROLLER()
     {
         ext.setPID(extP, extI, extD);
-        int extPose = armMotor.getCurrentPosition();
-        double extPwr = ext.calculate(extPose, extTarget) + (Math.cos(Math.toRadians(extTarget/ticksPerDegree)) * extF);
-        armMotor.setPower(extPwr *(1/3.0));
+        //int extPose = armMotor.getCurrentPosition();
+        //double extPwr = ext.calculate(extPose, extTarget) + (Math.cos(Math.toRadians(extTarget/ticksPerDegree)) * extF);
+        //armMotor.setPower(extPwr *(1/3.0));
 
-        telemetry.addData("extPos ", extPose);
+        //telemetry.addData("extPos ", extPose);
         telemetry.addData("extTarget ", extTarget);
     }
     public void flpCONTROLLER(int target, int state) //in with the target -> out with the velocity
@@ -361,10 +402,10 @@ public class Red4Specimen extends OpMode {
         flipMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         flipMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        armMotor = hardwareMap.get(DcMotorEx.class, "arm");
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //armMotor = hardwareMap.get(DcMotorEx.class, "arm");
+        //armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        //armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         //drive motors
         drive = new NewMecanumDrive(hardwareMap);
@@ -372,9 +413,9 @@ public class Red4Specimen extends OpMode {
         drive.setPoseEstimate(Mailbox.currentPose);
 
         //servos
-        wristServo = hardwareMap.get(Servo.class, "wrist");
-        spinnerServo = hardwareMap.get(Servo.class, "spinner");
-        clawServo = hardwareMap.get(Servo.class, "claw");
+        //wristServo = hardwareMap.get(Servo.class, "wrist");
+        //spinnerServo = hardwareMap.get(Servo.class, "spinner");
+        //clawServo = hardwareMap.get(Servo.class, "claw");
 
         //mailbox
         imu = hardwareMap.get(IMU.class, "imu");
@@ -387,9 +428,9 @@ public class Red4Specimen extends OpMode {
     {
         for(int i=0; i<15; i++)
         {
-            spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
-            wristServo.setPosition(0.39);
-            clawServo.setPosition(0.4);
+            //spinnerServo.setPosition(0.21 + 0.1217 - 0.0528);
+            //wristServo.setPosition(0.39);
+            //clawServo.setPosition(0.4);
         }
         flpPosTarget = -200;
         extTarget = 0;

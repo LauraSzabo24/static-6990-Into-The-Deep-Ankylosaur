@@ -41,6 +41,8 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner;
@@ -56,7 +58,8 @@ import Autonomous.Mailbox;
  * Simple mecanum drive hardware implementation for REV hardware.
  */
 @Config
-public class NewMecanumDrive extends MecanumDrive {
+public class pinpointMecanumDrive extends pinMecaDrive {
+    //region VARIABLES
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(2, 0, 0);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(-8, 0, 0);
 
@@ -82,7 +85,8 @@ public class NewMecanumDrive extends MecanumDrive {
     private List<Integer> lastEncPositions = new ArrayList<>();
     private List<Integer> lastEncVels = new ArrayList<>();
 
-    public NewMecanumDrive(HardwareMap hardwareMap) {
+    //endregion
+    public pinpointMecanumDrive(HardwareMap hardwareMap) {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
@@ -96,7 +100,6 @@ public class NewMecanumDrive extends MecanumDrive {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
-        // TODO: adjust the names of the following hardware devices to match your configuration
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
                 DriveConstants.LOGO_FACING_DIR, DriveConstants.USB_FACING_DIR));
@@ -128,13 +131,8 @@ public class NewMecanumDrive extends MecanumDrive {
             setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, MOTOR_VELO_PID);
         }
 
-        // TODO: reverse any motors using DcMotor.setDirection()
-
         List<Integer> lastTrackingEncPositions = new ArrayList<>();
         List<Integer> lastTrackingEncVels = new ArrayList<>();
-
-        // TODO: if desired, use setLocalizer() to change the localization method
-        setLocalizer(new pinpointLocalizer(hardwareMap, this));
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(
                 follower, HEADING_PID, batteryVoltageSensor,
@@ -142,10 +140,10 @@ public class NewMecanumDrive extends MecanumDrive {
         );
     }
 
-    public double secretAdditionMotorAverage()
-    {
-        return (Math.abs(leftFront.getVelocity())+Math.abs(rightFront.getVelocity())+Math.abs(leftRear.getVelocity())+Math.abs(rightRear.getVelocity()))/4;
+    public double secretAdditionMotorAverage() {
+        return (Math.abs(leftFront.getVelocity()) + Math.abs(rightFront.getVelocity()) + Math.abs(leftRear.getVelocity()) + Math.abs(rightRear.getVelocity())) / 4;
     }
+
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
         return new TrajectoryBuilder(startPose, VEL_CONSTRAINT, ACCEL_CONSTRAINT);
     }
@@ -219,16 +217,15 @@ public class NewMecanumDrive extends MecanumDrive {
 
     public void waitForIdle2(Mailbox mail) {
         int magic = 0;
-        while (!Thread.currentThread().isInterrupted() && isBusy())
-        {
+        while (!Thread.currentThread().isInterrupted() && isBusy()) {
             update();
             superSecretAddition(mail, magic);
-            magic ++;
+            magic++;
         }
     }
-    public void superSecretAddition(Mailbox mail, int magic)
-    {
-        Pose2d current = new Pose2d(-this.getPoseEstimate().getY(), this.getPoseEstimate().getX()+14, this.getPoseEstimate().getHeading() - Math.toRadians(-90));
+
+    public void superSecretAddition(Mailbox mail, int magic) {
+        Pose2d current = new Pose2d(-this.getPoseEstimate().getY(), this.getPoseEstimate().getX() + 14, this.getPoseEstimate().getHeading() - Math.toRadians(-90));
         //Pose2d current = new Pose2d(magic, 0);
         mail.setAutoEnd(current);
     }
@@ -336,8 +333,7 @@ public class NewMecanumDrive extends MecanumDrive {
         return new ProfileAccelerationConstraint(maxAccel);
     }
 
-    public void secretSetHeading()
-    {
+    public void secretSetHeading() {
         setPoseEstimate(new Pose2d(getPoseEstimate().getX(), getPoseEstimate().getY(), 0));
     }
 }

@@ -10,8 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
-import org.firstinspires.ftc.teamcode.drive.Unused.DI_MecanumDrive;
+import org.firstinspires.ftc.teamcode.drive.Unused.NewMecanumDrive;
 
 import java.util.Objects;
 

@@ -15,8 +15,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
-import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
+import org.firstinspires.ftc.teamcode.drive.Unused.NewMecanumDrive;
 import Autonomous.Mailbox;
 
 @TeleOp
@@ -31,6 +30,8 @@ public class RedTele extends LinearOpMode {
             .addStep(0.5, 0.5, 0.5, 150)
             .addStep(0, 0, 0, 150)
             .build();
+    ElapsedTime flashTimer = new ElapsedTime();
+
     //endregion
 
     //region FLIPPER CONTROLLER
@@ -56,7 +57,7 @@ public class RedTele extends LinearOpMode {
     Pose2d poseEstimate;
     private double speed;
     private double multiply;
-    GoBildaPinpointDriver odo;
+    //GoBildaPinpointDriver odo;
     double oldTime = 0;
     IMU imu;
     IMU.Parameters parameters;
@@ -165,11 +166,12 @@ public class RedTele extends LinearOpMode {
         imu.initialize(parameters);
 
         //odometry
-        odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-3, -26);
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
+        /*odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
+        odo.setOffsets(-50, 180);
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
+        */
     }
     public void movementInitI()
     {
@@ -197,6 +199,8 @@ public class RedTele extends LinearOpMode {
         gameModeA = speedControlState.NORMAL;
         gameModeB = speedControlState.NORMAL;
         hangState = hangControlState.PHASEONE;
+        //odo.resetPosAndIMU();
+        drive.update();
         editMode = true;
         waitForStart();
 
@@ -217,8 +221,8 @@ public class RedTele extends LinearOpMode {
         currG2.copy(gamepad2);
         telemetry.update();
         drive.update();
-        //imu.initialize(parameters);
-        odo.update(GoBildaPinpointDriver.readData.ONLY_UPDATE_HEADING);
+        //odo.update();
+        //odo.update(GoBildaPinpointDriver.readData.ONLY_UPDATE_HEADING);
         //poseEstimate = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading());
 
         //CONTROLS
@@ -237,7 +241,9 @@ public class RedTele extends LinearOpMode {
     {
         //region SPEED CHANGES | LEFT TRIGGER FAST | RIGHT TRIGGER SLOW
         gameModeA = speedControlState.NORMAL;
-        gamepad1.setLedColor(0, 0, (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
+        if(flashTimer.time()>2) {
+            gamepad1.setLedColor(0, 0, (255 / 255.0), Gamepad.LED_DURATION_CONTINUOUS);
+        }
         if (gamepad1.right_trigger > 0.3) {
             gameModeA = speedControlState.PRECISION;
             gamepad1.setLedColor((38/255.0), (255/255.0), 0, Gamepad.LED_DURATION_CONTINUOUS);
@@ -265,17 +271,18 @@ public class RedTele extends LinearOpMode {
         //region FIELD CENTRIC RESET
         if(!oldG1.a && !oldG2.b && !oldG2.x && !oldG2.y && ((currG1.a && currG1.b) || (currG1.a && currG1.y) || (currG1.a && currG1.x) || (currG1.b && currG1.y) || (currG1.b && currG1.x) || (currG1.x && currG1.y)))
         {
-            odo.resetPosAndIMU();
+           // odo.resetPosAndIMU();
             gamepad1.runLedEffect(resetField);
+            flashTimer.reset();
         }
         //endregion
 
         //region FIELD CENTRIC
-        //poseEstimate = drive.getPoseEstimate();
+        poseEstimate = drive.getPoseEstimate();
         Vector2d input = new Vector2d(
                 ((gamepad1.left_stick_y)* multiply)/speed,
                 ((gamepad1.left_stick_x)* multiply)/speed
-        ).rotated(-odo.getHeading()); // -odo.getHeading() -poseEstimate.getHeading()
+        ).rotated(-poseEstimate.getHeading()); // -odo.getHeading() -poseEstimate.getHeading()
         drive.setWeightedDrivePower(
                 new Pose2d(
                         input.getX(),
@@ -1035,16 +1042,19 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("ext TARGET - ", extTarget);
         telemetry.addData("\next percent - ", extPercentage);
 
-        /*telemetry.addData("\nspinner - ", spin.getPosition());
+        telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
         telemetry.addData("big wrist right - ", bigWristR.getPosition());
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
-        telemetry.addData("claw - ", claw.getPosition());*/
+        telemetry.addData("claw - ", claw.getPosition());
 
-        telemetry.addData("Status", "Initialized");
-        telemetry.addData("X offset", odo.getXOffset());
-        telemetry.addData("Y offset", odo.getYOffset());
-        telemetry.addData("Device Version Number:", odo.getDeviceVersion());
-        telemetry.addData("Device Scalar", odo.getYawScalar());
+       /* telemetry.addData("X ODOMETRY POSITION", odo.getPosX());
+        telemetry.addData("Y ODOMETRY POSITION", odo.getPosY());
+        telemetry.addData("HEADING ODOMETRY POSITION", odo.getHeading());*/
+
+        telemetry.addData("X ODOMETRY POSITION", drive.getPoseEstimate().getX());
+        telemetry.addData("Y ODOMETRY POSITION", drive.getPoseEstimate().getY());
+        telemetry.addData("HEADING ODOMETRY POSITION", drive.getPoseEstimate().getHeading());
+
     }
 }
