@@ -1,4 +1,4 @@
-This is the 2024-2025 season's code for team 6990 Static Void's second robot "Ankylo". 
+This is the 2024-2025 season's code for team 6990 Static Void's second robot "Ankylosaurus" or "Ankylo". 
 
 Credits:
 All code within this repository is from either the 2024-2025 FTC Roadrunner Quickstart, 
