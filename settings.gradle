@@ -1,0 +1,5 @@
+include ':FtcRobotController'
+include ':TeamCode'
+include ':MeepMeep'
+include ':sdk'
+include ':lib'
