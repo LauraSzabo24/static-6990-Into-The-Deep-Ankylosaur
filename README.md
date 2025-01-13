@@ -1,4 +1,5 @@
-This is the 2024-2025 season's code for team 6990 Static Void's second robot "Ankylosaurus" or "Ankylo". 
+This is the 2024-2025 season's code for team 6990 Static Void's second robot "Ankylosaurus" or "Ankylo".
+ALL OF THIS CODE IS STILL IN PROGRESS WORK
 
 Credits:
 All code within this repository is from either the 2024-2025 FTC Roadrunner Quickstart, 
@@ -17,7 +18,7 @@ All important code files are found under TeamCode/src/main/java. Here there are 
     
     -org/firstinspires/ftc/teamcode: These contain some of the files from the Roadrunner Quickstart. However, the majority are
     modified especially the ones found under the drive folder. Most of these modifications were done in order to implement automated
-    teleOp/driver control period controls. 
+    teleOp/driver control period controls and the pinpoint odometry controler. Some of the files here are also in Kotlin.
     
     -RelicsFromCenterStageGame/TeleOp - These are from a previous season that I keep to use as reference. They can be ignored
 
