@@ -41,6 +41,8 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.drive.PinThings.pinMecaDrive;
+import org.firstinspires.ftc.teamcode.drive.PinThings.pinpointLocalizer;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner;
@@ -56,7 +58,7 @@ import Autonomous.Mailbox;
  * Simple mecanum drive hardware implementation for REV hardware.
  */
 @Config
-public class NewMecanumDrive extends MecanumDrive {
+public class NewMecanumDrive extends pinMecaDrive {
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(2, 0, 0);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(-8, 0, 0);
 
@@ -81,6 +83,8 @@ public class NewMecanumDrive extends MecanumDrive {
 
     private List<Integer> lastEncPositions = new ArrayList<>();
     private List<Integer> lastEncVels = new ArrayList<>();
+
+    private pinpointLocalizer local;
 
     public NewMecanumDrive(HardwareMap hardwareMap) {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
@@ -134,12 +138,18 @@ public class NewMecanumDrive extends MecanumDrive {
         List<Integer> lastTrackingEncVels = new ArrayList<>();
 
         // TODO: if desired, use setLocalizer() to change the localization method
-        setLocalizer(new pinpointLocalizer(hardwareMap, this));
+        local = new pinpointLocalizer(hardwareMap, this);
+        setLocalizer(local);
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(
                 follower, HEADING_PID, batteryVoltageSensor,
                 lastEncPositions, lastEncVels, lastTrackingEncPositions, lastTrackingEncVels
         );
+    }
+
+    public void resetOdo()
+    {
+        local.resetOdo();
     }
 
     public double secretAdditionMotorAverage()
