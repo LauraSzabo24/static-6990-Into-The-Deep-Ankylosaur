@@ -407,25 +407,30 @@ public class RedTele extends LinearOpMode {
 
         if(editMode)
         {
-            //region SPEED CONTROLS
-            if ((currG2.right_trigger > 0.3) && !(oldG2.right_trigger>0.3) && (!notNormalLimits)) {
+            //region SPEED CONTROLS | LEFT TRIGGER FAST | RIGHT TRIGGER SLOW
+            int extAmount = 80;
+            double smallAmount = 0.01;
+            double bigAmount = 0.03;
+            gameModeB = speedControlState.NORMAL;
+            if (gamepad2.right_trigger > 0.3) {
                 gameModeB = speedControlState.PRECISION;
-                notNormalLimits = true;
             }
-            else if((currG2.right_trigger > 0.3) && !(oldG2.right_trigger>0.3))
-            {
-                notNormalLimits = false;
-                gameModeB = speedControlState.NORMAL;
-            }
-
-            if ((currG2.left_trigger > 0.3) && !(oldG2.left_trigger>0.3) && (!notNormalLimits))  {
+            if (gamepad2.left_trigger > 0.3) {
                 gameModeB = speedControlState.SUPERSPEED;
-                notNormalLimits = true;
             }
-            else if((currG2.left_trigger > 0.3) && !(oldG2.left_trigger>0.3))
-            {
-                notNormalLimits = false;
-                gameModeB = speedControlState.NORMAL;
+            switch(gameModeB){
+                case NORMAL:
+                    break;
+                case PRECISION:
+                    extAmount = 40;
+                    smallAmount = 0.004;
+                    bigAmount = 0.01;
+                    break;
+                case SUPERSPEED:
+                    extAmount = 120;
+                    smallAmount = 0.03;
+                    bigAmount = 0.06;
+                    break;
             }
             //endregion
 
@@ -434,15 +439,15 @@ public class RedTele extends LinearOpMode {
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 controlState = poseControlState.FREE;
-                bigWristL.setPosition(bigWristL.getPosition() + 0.01);
-                bigWristR.setPosition(bigWristR.getPosition() - 0.01);
+                bigWristL.setPosition(bigWristL.getPosition() + bigAmount);
+                bigWristR.setPosition(bigWristR.getPosition() - bigAmount);
             }
-            else if(gamepad2.x && bigWristR.getPosition()<=0.87+0.01)
+            else if(gamepad2.x && bigWristR.getPosition()<=0.87+bigAmount)
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 controlState = poseControlState.FREE;
-                bigWristL.setPosition(bigWristL.getPosition() - 0.01);
-                bigWristR.setPosition(bigWristR.getPosition() + 0.01);
+                bigWristL.setPosition(bigWristL.getPosition() - bigAmount);
+                bigWristR.setPosition(bigWristR.getPosition() + bigAmount);
             }
             else if (gamepad2.y)
             {
@@ -456,16 +461,16 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region SMALL WRIST
-            if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(0.9367-0.005))
+            if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(0.9367-smallAmount))
             {
                 telemetry.addLine("WRIST MOVEMENT");
-                smallWrist.setPosition(smallWrist.getPosition() + 0.005);
+                smallWrist.setPosition(smallWrist.getPosition() + smallAmount);
                 controlState = poseControlState.FREE;
             }
-            else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1519-0.005)
+            else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1519-smallAmount)
             {
                 telemetry.addLine("WRIST MOVEMENT");
-                smallWrist.setPosition(smallWrist.getPosition() - 0.005);
+                smallWrist.setPosition(smallWrist.getPosition() - smallAmount);
                 controlState = poseControlState.FREE;
             }
             if(currG2.left_stick_button && !oldG2.left_stick_button)
@@ -531,18 +536,18 @@ public class RedTele extends LinearOpMode {
                 controlState = poseControlState.FREE;
                 if(flpPosTarget<200)
                 {
-                    if (extTarget + 40 >= 1500 - 40) {
+                    if (extTarget + extAmount >= 1500 - extAmount) {
                         extTarget += Math.abs(Math.abs(extTarget) - 1600);
                     } else {
-                        extTarget += 40;
+                        extTarget += extAmount;
                     }
                 }
                 else if(flpPosTarget>=1600)
                 {
-                    if (extTarget + 40 >= 1120 - 40) {
+                    if (extTarget + extAmount >= 1120 - extAmount) {
                         extTarget += Math.abs(Math.abs(extTarget) - 1120);
                     } else {
-                        extTarget += 40;
+                        extTarget += extAmount;
                     }
                 }
             }
@@ -551,18 +556,18 @@ public class RedTele extends LinearOpMode {
                 telemetry.addLine("ext DOWN");
                 controlState = poseControlState.FREE;
                 if(flpPosTarget<200) {
-                    if (extTarget - 40 <= 0) {
+                    if (extTarget - extAmount <= 0) {
                         extTarget -= Math.abs(extTarget);
                     } else {
-                        extTarget -= 40;
+                        extTarget -= extAmount;
                     }
                 }
                 else if(flpPosTarget>=1600)
                 {
-                    if (extTarget - 40 <= 40) {
-                        extTarget -= Math.abs(extTarget-40);
+                    if (extTarget - extAmount <= extAmount) {
+                        extTarget -= Math.abs(extTarget-extAmount);
                     } else {
-                        extTarget -= 40;
+                        extTarget -= extAmount;
                     }
                 }
             }
@@ -618,11 +623,9 @@ public class RedTele extends LinearOpMode {
                 extTarget -= extTarget*flpPercentage;
             }*/
             //endregion
-        }
-        else {
-            setStates();
+
             //region CLAW
-            if (currG2.b && !oldG2.b)
+            if (currG2.touchpad && !oldG2.touchpad)
             {
                 if(clawIH)
                 {
@@ -634,6 +637,9 @@ public class RedTele extends LinearOpMode {
                 clawIH = !clawIH;
             }
             //endregion
+        }
+        else {
+            setStates();
         }
     }
     public void setStates()
@@ -653,7 +659,8 @@ public class RedTele extends LinearOpMode {
             }
             else {
                 extTarget = 0;
-                while(-extLMotor.getCurrentPosition()>10) {
+                jerkTimer.reset();
+                while(-extLMotor.getCurrentPosition()>10 || jerkTimer.time() < 1) {
                     driverAControls();
                     //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
@@ -730,7 +737,7 @@ public class RedTele extends LinearOpMode {
         //endregion
 
         //region HOME POSITION
-        if(controlState != poseControlState.HOME && (currG2.dpad_right && !oldG2.dpad_right))
+        if(controlState != poseControlState.HOME && ((currG2.dpad_right && !oldG2.dpad_right)))
         {
             telemetry.addLine("HOME POSITION");
             controlState = poseControlState.HOME;
@@ -813,9 +820,9 @@ public class RedTele extends LinearOpMode {
                 extTarget = 560;
                 flpPosTarget = 1650;
                 spin.setPosition(0.1528);
-                bigWristR.setPosition(0.28);
-                bigWristL.setPosition(0.7194);
-                smallWrist.setPosition(0.2061);
+                bigWristR.setPosition(0.39);
+                bigWristL.setPosition(0.6078);
+                smallWrist.setPosition(0.3206);
             }
             else {
                 extTarget = 0;
@@ -835,9 +842,9 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 spin.setPosition(0.1528);
-                bigWristR.setPosition(0.28);
-                bigWristL.setPosition(0.7194);
-                smallWrist.setPosition(0.2061);
+                bigWristR.setPosition(0.39);
+                bigWristL.setPosition(0.6078);
+                smallWrist.setPosition(0.3206);
                 extTarget = 560;
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
@@ -957,6 +964,20 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
             }
+        }
+        //endregion
+
+        //region CLAW
+        if (currG2.touchpad && !oldG2.touchpad)
+        {
+            if(clawIH)
+            {
+                claw.setPosition(0.6);
+            }
+            else {
+                claw.setPosition(0.3);
+            }
+            clawIH = !clawIH;
         }
         //endregion
     }
@@ -1100,17 +1121,17 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("extVelocity ", -extLMotor.getVelocity());
         telemetry.addData("\next percent - ", extPercentage);
 
-        /*telemetry.addData("\nspinner - ", spin.getPosition());
+        telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
         telemetry.addData("big wrist right - ", bigWristR.getPosition());
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
-        telemetry.addData("claw - ", claw.getPosition());*/
+        telemetry.addData("claw - ", claw.getPosition());
 
         /*telemetry.addData("X ODOMETRY POSITION", odo.getPosX());
         telemetry.addData("Y ODOMETRY POSITION", odo.getPosY());
         telemetry.addData("HEADING ODOMETRY POSITION", odo.getHeading());*/
-        telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
+       /* telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
         telemetry.addData("Y ODOMETRY POSITION", poseEstimate.getY());
-        telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());
+        telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());*/
     }
 }
