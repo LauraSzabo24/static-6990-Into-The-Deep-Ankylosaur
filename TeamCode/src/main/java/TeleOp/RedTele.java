@@ -149,6 +149,7 @@ public class RedTele extends LinearOpMode {
         //drive motors
         drive = new NewMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        drive.reverseMotors();
         drive.setPoseEstimate(Mailbox.currentPose);
 
         //servos
@@ -574,7 +575,7 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region VARIABLE PICKUP
-            if(controlState == poseControlState.PICKUP)
+            /*if(controlState == poseControlState.PICKUP)
             {
                 extPercentage = (extTarget-40.0)/1120;
                 spin.setPosition(0.1528);
@@ -585,7 +586,7 @@ public class RedTele extends LinearOpMode {
                 //smallWrist - 0.1706 - 0.2556
                 //bigWristL - 0.6989 - 0.7389
                 //bigWristR - 0.3 - 0.26
-            }
+            }*/
             //endregion
 
             //region FLIPPER
@@ -817,7 +818,7 @@ public class RedTele extends LinearOpMode {
             telemetry.addLine("PICKUP POSITION");
             controlState = poseControlState.PICKUP;
             if(flpPosTarget>1200) {
-                extTarget = 560;
+                extTarget = 40;
                 flpPosTarget = 1650;
                 spin.setPosition(0.1528);
                 bigWristR.setPosition(0.39);
@@ -845,9 +846,9 @@ public class RedTele extends LinearOpMode {
                 bigWristR.setPosition(0.39);
                 bigWristL.setPosition(0.6078);
                 smallWrist.setPosition(0.3206);
-                extTarget = 560;
+                extTarget = 40;
                 jerkTimer.reset();
-                while(jerkTimer.time() < 0.5) {
+                while(jerkTimer.time() < 0.3) {
                     driverAControls();
                     //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
@@ -1127,11 +1128,8 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
         telemetry.addData("claw - ", claw.getPosition());
 
-        /*telemetry.addData("X ODOMETRY POSITION", odo.getPosX());
-        telemetry.addData("Y ODOMETRY POSITION", odo.getPosY());
-        telemetry.addData("HEADING ODOMETRY POSITION", odo.getHeading());*/
-       /* telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
+        telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
         telemetry.addData("Y ODOMETRY POSITION", poseEstimate.getY());
-        telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());*/
+        telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());
     }
 }

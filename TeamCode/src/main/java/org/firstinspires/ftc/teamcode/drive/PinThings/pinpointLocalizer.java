@@ -25,8 +25,8 @@ public class pinpointLocalizer extends pinLocalizer {
     public static double PERPENDICULAR_X = 5.5; //2.8
     public static double PERPENDICULAR_Y = 4; //5.25
 
-    public static double X_MULTIPLIER = 0.9888; //0.
-    public static double Y_MULTIPLIER = 1.1586 * 0.9977; //77.698, 77.92, 77.42
+    public static double X_MULTIPLIER = 0.9951095; //0.994657, 0.9966894, 0.993982
+    public static double Y_MULTIPLIER = 1.0009521; //1.00405, 1.0011026, 1.0021226, 0.996078
     //endregion
     private NewMecanumDrive drive;
     GoBildaPinpointDriver odo;
@@ -72,7 +72,15 @@ public class pinpointLocalizer extends pinLocalizer {
     @Override
     public Pose2d getOdoPosition() {
         odo.update();
-        Pose2d odoPose = new Pose2d(odo.getPosX(), odo.getPosY(), odo.getHeading());
+        Pose2d odoPose = new Pose2d((odo.getPosX() * X_MULTIPLIER) *0.0393701, (odo.getPosY() * Y_MULTIPLIER) * 0.0393701, odo.getHeading());
+        return odoPose;
+    }
+
+    @NonNull
+    @Override
+    public Pose2d getOdoVelocity() {
+        odo.update();
+        Pose2d odoPose = new Pose2d((odo.getVelX() * X_MULTIPLIER)*0.0393701, (odo.getVelY() * Y_MULTIPLIER)*0.0393701, odo.getHeadingVelocity());
         return odoPose;
     }
 

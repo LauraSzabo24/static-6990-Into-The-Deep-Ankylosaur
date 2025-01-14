@@ -87,6 +87,9 @@ abstract class pinLocalizer(
         val odoPos = getOdoPosition()
         poseEstimate = odoPos
         _poseEstimate = odoPos
+
+        val odoVel = getOdoVelocity()
+        poseVelocity = odoVel
     }
 
     /**
@@ -95,6 +98,7 @@ abstract class pinLocalizer(
     abstract fun getWheelPositions(): List<Double>
 
     abstract fun getOdoPosition(): Pose2d
+    abstract fun getOdoVelocity(): Pose2d
 
     /**
      * Returns the velocities of the tracking wheels in the desired distance units (not encoder counts!)
