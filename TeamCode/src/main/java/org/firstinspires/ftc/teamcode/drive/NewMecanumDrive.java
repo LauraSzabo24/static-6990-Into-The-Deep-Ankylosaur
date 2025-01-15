@@ -17,7 +17,6 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.drive.DriveSignal;
-import com.acmerobotics.roadrunner.drive.MecanumDrive;
 import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.followers.TrajectoryFollower;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -53,16 +52,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import Autonomous.Mailbox;
-
-/*
- * Simple mecanum drive hardware implementation for REV hardware.
- */
 @Config
 public class NewMecanumDrive extends pinMecaDrive {
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(2, 0, 0);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(-8, 0, 0);
-
-    public static double LATERAL_MULTIPLIER = 1.4286 * 1.0347;
+    //region VARIABLES
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(4, 1, 0);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(8, 0, 0);
+    public static double LATERAL_MULTIPLIER = 1.1702; //55.774/55.5, 55.1567/
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
@@ -83,7 +78,7 @@ public class NewMecanumDrive extends pinMecaDrive {
 
     private List<Integer> lastEncPositions = new ArrayList<>();
     private List<Integer> lastEncVels = new ArrayList<>();
-
+    //endregion
     private pinpointLocalizer local;
 
     public NewMecanumDrive(HardwareMap hardwareMap) {
@@ -100,7 +95,6 @@ public class NewMecanumDrive extends pinMecaDrive {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
-        // TODO: adjust the names of the following hardware devices to match your configuration
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
                 DriveConstants.LOGO_FACING_DIR, DriveConstants.USB_FACING_DIR));
@@ -121,23 +115,16 @@ public class NewMecanumDrive extends pinMecaDrive {
             motorConfigurationType.setAchieveableMaxRPMFraction(1.0);
             motor.setMotorType(motorConfigurationType);
         }
-
         if (RUN_USING_ENCODER) {
             setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
-
         setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         if (RUN_USING_ENCODER && MOTOR_VELO_PID != null) {
             setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, MOTOR_VELO_PID);
         }
-
-        // TODO: reverse any motors using DcMotor.setDirection()
-
         List<Integer> lastTrackingEncPositions = new ArrayList<>();
         List<Integer> lastTrackingEncVels = new ArrayList<>();
 
-        // TODO: if desired, use setLocalizer() to change the localization method
         local = new pinpointLocalizer(hardwareMap, this);
         setLocalizer(local);
 

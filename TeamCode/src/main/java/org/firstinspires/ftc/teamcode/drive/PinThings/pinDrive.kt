@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.drive.PinThings
 
 import com.acmerobotics.roadrunner.drive.DriveSignal
 import com.acmerobotics.roadrunner.geometry.Pose2d
+import com.acmerobotics.roadrunner.localization.Localizer
 import com.acmerobotics.roadrunner.util.Angle
 
 /**
@@ -13,7 +14,7 @@ abstract class pinDrive {
     /**
      * Localizer used to determine the evolution of [poseEstimate].
      */
-    abstract var localizer: pinLocal
+    abstract var localizer: pinLocal //pinlocal
 
     private var headingOffset: Double = 0.0
 

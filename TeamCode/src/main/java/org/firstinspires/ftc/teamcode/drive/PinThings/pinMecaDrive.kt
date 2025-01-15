@@ -1,10 +1,10 @@
 package org.firstinspires.ftc.teamcode.drive.PinThings
-
 import com.acmerobotics.roadrunner.drive.Drive
 import com.acmerobotics.roadrunner.drive.DriveSignal
 import com.acmerobotics.roadrunner.geometry.Pose2d
 import com.acmerobotics.roadrunner.kinematics.Kinematics
 import com.acmerobotics.roadrunner.kinematics.MecanumKinematics
+import com.acmerobotics.roadrunner.localization.Localizer
 import com.acmerobotics.roadrunner.util.Angle
 
 /**
@@ -35,7 +35,7 @@ abstract class pinMecaDrive @JvmOverloads constructor(
     class MecanumLocalizer @JvmOverloads constructor(
         private val drive: pinMecaDrive,
         private val useExternalHeading: Boolean = true
-    ) : pinLocal {
+    ) : pinLocal { //pinlocal
         private var _poseEstimate = Pose2d()
         override var poseEstimate: Pose2d
             get() = _poseEstimate
@@ -93,7 +93,7 @@ abstract class pinMecaDrive @JvmOverloads constructor(
         }
     }
 
-    override var localizer: pinLocal = MecanumLocalizer(this)
+    override var localizer: pinLocal = MecanumLocalizer(this) //pinlocal
 
     override fun setDriveSignal(driveSignal: DriveSignal) {
         val velocities = MecanumKinematics.robotToWheelVelocities(

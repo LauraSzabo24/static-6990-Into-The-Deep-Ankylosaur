@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.drive.PinThings;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.localization.TwoTrackingWheelLocalizer;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -38,9 +39,9 @@ public class pinpointLocalizer extends pinLocalizer {
         ));
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
-        odo.setOffsets(-50, 180);
+        odo.setOffsets(-50, -180); //-50 180
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.REVERSED);
         odo.resetPosAndIMU();
         this.drive = drive;
     }
@@ -51,20 +52,20 @@ public class pinpointLocalizer extends pinLocalizer {
 
     @Override
     public double getHeading() {
-        return drive.getRawExternalHeading();
+        return odo.getHeading();
     }
 
     @Override
     public Double getHeadingVelocity() {
-        return drive.getExternalHeadingVelocity();
+        return odo.getHeadingVelocity();
     }
 
     @NonNull
     @Override
     public List<Double> getWheelPositions() {
         return Arrays.asList(
-                1* X_MULTIPLIER,
-                1 * Y_MULTIPLIER
+                odo.getPosX()* X_MULTIPLIER,
+                odo.getPosY() * Y_MULTIPLIER
         );
     }
 
@@ -72,7 +73,12 @@ public class pinpointLocalizer extends pinLocalizer {
     @Override
     public Pose2d getOdoPosition() {
         odo.update();
-        Pose2d odoPose = new Pose2d((odo.getPosX() * X_MULTIPLIER) *0.0393701, (odo.getPosY() * Y_MULTIPLIER) * 0.0393701, odo.getHeading());
+        Vector2d input = new Vector2d(
+                (odo.getPosX() * X_MULTIPLIER) * 0.0393701,
+                (odo.getPosY() * Y_MULTIPLIER) * 0.0393701
+        ).rotated(0);
+        Pose2d odoPose = new Pose2d(input.getX(), input.getY(), odo.getHeading());
+        //Pose2d odoPose = new Pose2d((odo.getPosX() * X_MULTIPLIER) *0.0393701, (-odo.getPosY() * Y_MULTIPLIER) * 0.0393701, odo.getHeading());
         return odoPose;
     }
 
@@ -80,7 +86,13 @@ public class pinpointLocalizer extends pinLocalizer {
     @Override
     public Pose2d getOdoVelocity() {
         odo.update();
-        Pose2d odoPose = new Pose2d((odo.getVelX() * X_MULTIPLIER)*0.0393701, (odo.getVelY() * Y_MULTIPLIER)*0.0393701, odo.getHeadingVelocity());
+        Vector2d input = new Vector2d(
+                (odo.getVelX() * X_MULTIPLIER)*0.0393701,
+                (odo.getVelY() * Y_MULTIPLIER)*0.0393701
+        ).rotated(0);
+        Pose2d odoPose = new Pose2d(input.getX(), input.getY(), odo.getHeadingVelocity());
+
+        //Pose2d odoPose = new Pose2d((odo.getVelX() * X_MULTIPLIER)*0.0393701, (-odo.getVelY() * Y_MULTIPLIER)*0.0393701, odo.getHeadingVelocity());
         return odoPose;
     }
 
@@ -92,8 +104,8 @@ public class pinpointLocalizer extends pinLocalizer {
     @Override
     public List<Double> getWheelVelocities() {
         return Arrays.asList(
-                1 * X_MULTIPLIER,
-                1 * Y_MULTIPLIER
+                odo.getVelX() * X_MULTIPLIER,
+                -odo.getVelY() * Y_MULTIPLIER
         );
     }
 }

@@ -12,7 +12,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import Autonomous.Mailbox;
 
-import org.firstinspires.ftc.teamcode.drive.Unused.DI_MecanumDrive;
+
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
@@ -32,7 +33,7 @@ public class TrashyBlueExtraTrash extends LinearOpMode {
     //region DRIVER A MATERIAL
     IMU imu;
     IMU.Parameters parameters;
-    DI_MecanumDrive drive;
+    SampleMecanumDrive drive;
     Pose2d poseEstimate;
     private double speed;
     private double multiply;
@@ -67,7 +68,7 @@ public class TrashyBlueExtraTrash extends LinearOpMode {
         armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         //drive motors
-        drive = new DI_MecanumDrive(hardwareMap);
+        drive = new SampleMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         drive.setPoseEstimate(Mailbox.currentPose);
 

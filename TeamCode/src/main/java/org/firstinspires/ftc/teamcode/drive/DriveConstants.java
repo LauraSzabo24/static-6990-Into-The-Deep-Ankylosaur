@@ -7,24 +7,31 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 @Config
 public class DriveConstants {
 
-    public static final double TICKS_PER_REV = 753.2;
-    public static final double MAX_RPM = 223;
+    public static final double TICKS_PER_REV = 537.7;
+    public static final double MAX_RPM = 312;
 
     public static final boolean RUN_USING_ENCODER = false;
-    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(0, 0, 0,
+    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(8, 0, -0.3,
             getMotorVelocityF(MAX_RPM / 60 * TICKS_PER_REV));
+
     public static double WHEEL_RADIUS = 1.8898; // in
-    public static double GEAR_RATIO = 1; // output (wheel) speed / input (motor) speed
-    public static double TRACK_WIDTH = 11; // in
+    public static double GEAR_RATIO =(.75* (62/48.13) * (46.5/44.71)) *1.2105; //.75* output (wheel) speed / input (motor) speed
+    public static double TRACK_WIDTH = 16.65; // in
 
-    public static double kV = 0.016;
-    public static double kA = 0.0035;
-    public static double kStatic = 0.006;
+    public static double kV = 0.0153;
+    public static double kA = 0.0034;
+    public static double kStatic = 0.0025;
 
-    public static double MAX_VEL = 30; //35
-    public static double MAX_ACCEL = 37.511829985823965;
-    public static double MAX_ANG_VEL = 0.8; //0.8
-    public static double MAX_ANG_ACCEL = Math.toRadians(175.45057469387754);
+
+    public static double MAX_VEL = 30; //50
+    public static double MAX_ACCEL = 30;
+    public static double MAX_ANG_VEL = Math.toRadians(162.31);
+    public static double MAX_ANG_ACCEL = Math.toRadians(60);
+
+    public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
+            RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+    public static RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIR =
+            RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
 
     public static double encoderTicksToInches(double ticks) {
@@ -39,10 +46,4 @@ public class DriveConstants {
         // see https://docs.google.com/document/d/1tyWrXDfMidwYyP_5H4mZyVgaEswhOC35gvdmP-V-5hA/edit#heading=h.61g9ixenznbx
         return 32767 / ticksPerSecond;
     }
-
-    public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
-            RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
-    public static RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIR =
-            RevHubOrientationOnRobot.UsbFacingDirection.UP;
-
 }
