@@ -1129,8 +1129,8 @@ public class RedTele extends LinearOpMode {
         ext.setPID(extP, extI, extD);
         int extPose = -extLMotor.getCurrentPosition();
         double extPwr = ext.calculate(extPose, extTarget);
-        extLMotor.setPower(-extPwr);
-        extRMotor.setPower(extPwr);
+        extLMotor.setVelocity(-extPwr);
+        extRMotor.setVelocity(extPwr);
 
         telemetry.addData("extPos ", extPose);
         telemetry.addData("extTarget ", extTarget);
@@ -1172,9 +1172,9 @@ public class RedTele extends LinearOpMode {
 
         double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
         telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>8)
+        if(velocityVal>10)
         {
-            velocityVal = 8;
+            velocityVal = 10;
         }
         flipMotor.setVelocity(velocityVal);
     }
