@@ -667,21 +667,25 @@ public class RedTele extends LinearOpMode {
             else {
                 extTarget = 0;
                 jerkTimer.reset();
-                while(-extLMotor.getCurrentPosition()>10 || jerkTimer.time() < 1) {
+                while(-extLMotor.getCurrentPosition()>50 || jerkTimer.time() < 1) {
                     driverAControls();
-                    //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
-                flpPosTarget = 0;
                 spin.setPosition(0.1567);
                 bigWristR.setPosition(0.88);
                 bigWristL.setPosition(0.1194);
                 smallWrist.setPosition(0.1567);
                 jerkTimer.reset();
+                while(jerkTimer.time() < 0.5) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                flpPosTarget = 0;
+                jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
-                    //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
@@ -693,7 +697,6 @@ public class RedTele extends LinearOpMode {
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
-                    //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
@@ -961,9 +964,8 @@ public class RedTele extends LinearOpMode {
                 smallWrist.setPosition(0.1567);
                 flpPosTarget = 1650;
                 jerkTimer.reset();
-                while(jerkTimer.time() < 1) {
+                while(jerkTimer.time() < 1.3) {
                     driverAControls();
-                    //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
@@ -975,7 +977,6 @@ public class RedTele extends LinearOpMode {
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.3) {
                     driverAControls();
-                    //extNewCONTROLLER(extTarget);
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
@@ -1129,8 +1130,8 @@ public class RedTele extends LinearOpMode {
         ext.setPID(extP, extI, extD);
         int extPose = -extLMotor.getCurrentPosition();
         double extPwr = ext.calculate(extPose, extTarget);
-        extLMotor.setVelocity(-extPwr);
-        extRMotor.setVelocity(extPwr);
+        extLMotor.setPower(-extPwr);
+        extRMotor.setPower(extPwr);
 
         telemetry.addData("extPos ", extPose);
         telemetry.addData("extTarget ", extTarget);
@@ -1172,10 +1173,6 @@ public class RedTele extends LinearOpMode {
 
         double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
         telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>10)
-        {
-            velocityVal = 10;
-        }
         flipMotor.setVelocity(velocityVal);
     }
 
