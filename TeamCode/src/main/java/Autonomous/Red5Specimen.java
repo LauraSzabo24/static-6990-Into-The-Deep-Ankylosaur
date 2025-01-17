@@ -1,9 +1,12 @@
 package Autonomous;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -13,6 +16,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
@@ -91,7 +95,7 @@ public class Red5Specimen extends OpMode {
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preload, dropOffI, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
     //endregion
 
     @Override
@@ -103,6 +107,8 @@ public class Red5Specimen extends OpMode {
         movementInitI();
         Pose2d startPose = new Pose2d(0,0,0);
         drive.setPoseEstimate(startPose);
+        extTarget = 0;
+        flpPosTarget = 0;
 
         //region PRELOAD & PICK UP GOOD
         preload = drive.trajectorySequenceBuilder(startPose)
@@ -125,132 +131,128 @@ public class Red5Specimen extends OpMode {
                 .addTemporalMarker(2.2,() -> {
                     homePosition();
                 })
+
                 .lineTo(new Vector2d(20, 5))
-                .splineToConstantHeading(new Vector2d(29, -30), Math.toRadians(0))
-                .waitSeconds(3)
-                .addTemporalMarker(3.8, this::miniPickup)
-                .addTemporalMarker(4.4,() -> { //5.1
+                .splineToConstantHeading(new Vector2d(32, -30), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+
+                .addTemporalMarker(4, this::miniPickup)
+                .addTemporalMarker(4.5,() -> {
                     claw.setPosition(0.6);
                     bigWristR.setPosition(0.81);
                     bigWristL.setPosition(0.19);
                 })
                 .lineTo(new Vector2d(20, -37))
-                .addTemporalMarker(4.5,() -> {drive.followTrajectorySequenceAsync(dropOffI, mail);})
-               .build();
+                .addTemporalMarker(5.5,() -> {drive.followTrajectorySequenceAsync(dropOffI1, mail);})
+                .waitSeconds(10)
+                .build();
         //endregion
 
         //region DROP OFF I GOOD
-        dropOffI = drive.trajectorySequenceBuilder(preload.end())
+        dropOffI1 = drive.trajectorySequenceBuilder(preload.end())
                 .lineTo(new Vector2d(15, -37))
-                .waitSeconds(1)
-                .lineTo(new Vector2d(10, -37))
-                .waitSeconds(0.5)
+                .waitSeconds(10)
                 .addTemporalMarker(0,() -> {
                     controlState = poseControlState.OLDWALL;
                     extTarget = 0;
                 })
-                .addTemporalMarker(0,() -> {
+                .addTemporalMarker(1,() -> {
                     spin.setPosition(0.1567);
+                    claw.setPosition(0.6);
                     bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
+                    bigWristL.setPosition(0.12);
                     smallWrist.setPosition(0.1567);
                     flpPosTarget = 1700;
                     extTarget = 40;
                 })
-                .addTemporalMarker(0.5,() -> {
-                    flpPosTarget = 1650;
+                .addTemporalMarker(2,() -> {
+                    claw.setPosition(0.6);
                     spin.setPosition(0.7106);
-                    bigWristR.setPosition(0.48);
-                    bigWristL.setPosition(0.5183);
+                    bigWristR.setPosition(0.5);
+                    bigWristL.setPosition(0.5);
                     smallWrist.setPosition(0.3206);
                 })
-                .addTemporalMarker(0.7,() -> {
-                    bigWristR.setPosition(0.3194);
-                    bigWristL.setPosition(0.68);
-                    smallWrist.setPosition(0.1567);
-                })
-                .addTemporalMarker(0.9,() -> {
+                .addTemporalMarker(3,() -> {drive.followTrajectorySequenceAsync(dropOffI2, mail);})
+                .build();
+        //endregion
+
+        //region DROP OFF I GOOD
+        dropOffI2 = drive.trajectorySequenceBuilder(preload.end())
+                .lineTo(new Vector2d(10, -37))
+                .waitSeconds(10)
+                .addTemporalMarker(0,() -> {
                     claw.setPosition(0.3);
                 })
-
                 .addTemporalMarker(1,() -> {
                     bigWristR.setPosition(0.48);
                     bigWristL.setPosition(0.5183);
                     smallWrist.setPosition(0.3206);
                 })
-                .addTemporalMarker(1.8,() -> {
+
+                .addTemporalMarker(2,() -> {
                     claw.setPosition(0.6);
                 })
-                .addTemporalMarker(2.4,() -> {
-                    bigWristR.setPosition(0.55);
-                    bigWristL.setPosition(0.45);
-                    smallWrist.setPosition(0.27);
+                .addTemporalMarker(3,() -> {
+                    extTarget = 0;
+                    bigWristR.setPosition(0.6);
+                    bigWristL.setPosition(0.4);
+                    smallWrist.setPosition(0.3206);
                 })
-               // .lineTo(new Vector2d(25, 15))
-
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
-                .waitSeconds(10)
+                //.addTemporalMarker(7,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
                 .build();
         //endregion
 
+
         //region CYCLE I
-        cycleI = drive.trajectorySequenceBuilder(dropOffI.end())
+        cycleI = drive.trajectorySequenceBuilder(dropOffI2.end())
                 .lineTo(new Vector2d(25, 17))
                 .waitSeconds(0.1)
                 .lineTo(new Vector2d(29, 17))
                 .waitSeconds(0.3)
                 .addTemporalMarker(0,() -> {
-                    extTarget = 0;
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
+                    flpPosTarget = -100;
                 })
-                .addTemporalMarker(1.5,() -> {
+                .addTemporalMarker(2.5,() -> {
                     flpPosTarget = 0;
-                })
-                .addTemporalMarker(2,() -> {
                     extTarget = 1160;
                     spin.setPosition(0.1567);
                     bigWristR.setPosition(0.87);
                     bigWristL.setPosition(0.13);
                     smallWrist.setPosition(0.1567);
                 })
-                .addTemporalMarker(2.5,() -> {
+                .addTemporalMarker(3,() -> {
                     smallWrist.setPosition(0.05);
                 })
 
-                .addTemporalMarker(3,() -> {
+                .addTemporalMarker(3.5,() -> {
                     smallWrist.setPosition(0.18);
                 })
-                .addTemporalMarker(3.1,() -> {
+                .addTemporalMarker(3.6,() -> {
                     telemetry.addLine("JERK");
                     extTarget = extTarget - 600;
                 })
-                .addTemporalMarker(3.6,() -> {
+                .addTemporalMarker(4.1,() -> {
                     extTarget = 908;
                     claw.setPosition(0.3);
                 })
 
-                .addTemporalMarker(4,() -> {
+                .addTemporalMarker(4.5,() -> {
                     extTarget = 0;
                 })
-                .addTemporalMarker(4.8,() -> {
+                .addTemporalMarker(5.3,() -> {
                     spin.setPosition(0.1567);
                     bigWristR.setPosition(0.88);
                     bigWristL.setPosition(0.1194);
                     smallWrist.setPosition(0.1567);
                 })
-                .addTemporalMarker(5.8,() -> {
+                .addTemporalMarker(6.3,() -> {
                     smallWrist.setPosition(0.05);
                 })
-                .waitSeconds(10)
 
                 .lineTo(new Vector2d(20, 5))
                 .splineToConstantHeading(new Vector2d(29, -30), Math.toRadians(0))
                 .waitSeconds(3)
-                .addTemporalMarker(7.8, this::miniPickup)
-                .addTemporalMarker(8.4,() -> { //5.1
+                .addTemporalMarker(8.3, this::miniPickup)
+                .addTemporalMarker(8.9,() -> { //5.1
                     claw.setPosition(0.6);
                     bigWristR.setPosition(0.81);
                     bigWristL.setPosition(0.19);
