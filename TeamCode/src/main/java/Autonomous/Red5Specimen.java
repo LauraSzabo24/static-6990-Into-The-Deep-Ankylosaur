@@ -95,7 +95,7 @@ public class Red5Specimen extends OpMode {
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
     //endregion
 
     @Override
@@ -112,7 +112,7 @@ public class Red5Specimen extends OpMode {
 
         //region PRELOAD & PICK UP GOOD
         preload = drive.trajectorySequenceBuilder(startPose)
-               .lineTo(new Vector2d(32, 13))
+               .lineTo(new Vector2d(30, 13))
                 .addTemporalMarker(0,() -> {
                     extTarget = 1060;
                     spin.setPosition(0.1567);
@@ -124,7 +124,7 @@ public class Red5Specimen extends OpMode {
                     smallWrist.setPosition(0.05);
                 })
                 .addTemporalMarker(1.5,() -> {
-                    smallWrist.setPosition(0.1567);
+                    smallWrist.setPosition(0.17);
                 })
                .addTemporalMarker(1.8, this::jerk)
 
@@ -142,7 +142,7 @@ public class Red5Specimen extends OpMode {
                 .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
 
                 .addTemporalMarker(4.3, this::miniPickup)
-                .addTemporalMarker(4.8,() -> {
+                .addTemporalMarker(5,() -> {
                     claw.setPosition(0.6);
                     bigWristR.setPosition(0.81);
                     bigWristL.setPosition(0.19);
@@ -168,50 +168,48 @@ public class Red5Specimen extends OpMode {
                 .build();
         //endregion
 
-        //region DROP OFF I 1
+        //region DROP OFF I 2
         dropOffI2 = drive.trajectorySequenceBuilder(dropOffI1.end())
                 .waitSeconds(1)
-                .back(7)
+                .back(3)
                 .waitSeconds(10)
                 //far down
                 .addTemporalMarker(0,() -> {
                     claw.setPosition(0.6);
                     spin.setPosition(0.7106);
-                    smallWrist.setPosition(0.3206);
-                    for(int i=0; i<100; i++) {
-                        bigWristR.setPosition(0.5);
-                        bigWristL.setPosition(0.5);
-                    }
-                })
-
-                //drop and lift
-                .addTemporalMarker(1,() -> {
-                    for(int i=0; i<100; i++) {
-                        claw.setPosition(0.3);
-                    }
-                })
-                .addTemporalMarker(1.2,() -> {
                     for(int i=0; i<100; i++) {
                         bigWristR.setPosition(0.48);
                         bigWristL.setPosition(0.5183);
                         smallWrist.setPosition(0.3206);
                     }
                 })
+                .addTemporalMarker(1,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
+                .build();
+        //endregion
 
+        //region DROP OFF I 3
+        dropOffI3 = drive.trajectorySequenceBuilder(dropOffI2.end())
+                .back(4)
+                .waitSeconds(10)
                 //close and lift
-                .addTemporalMarker(2,() -> {
+                .addTemporalMarker(0,() -> {
+                    for(int i=0; i<100; i++) {
+                        claw.setPosition(0.3);
+                    }
+                })
+                .addTemporalMarker(1.5,() -> {
                     for(int i=0; i<100; i++) {
                         claw.setPosition(0.6);
                     }
                 })
-                .addTemporalMarker(2.5,() -> {
+                .addTemporalMarker(2,() -> {
                     extTarget = 0;
                     for(int i=0; i<100; i++) {
                         bigWristR.setPosition(0.5394);
                         bigWristL.setPosition(0.46);
                     }
                 })
-                .addTemporalMarker(3,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
+                .addTemporalMarker(3.5,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
                 .build();
         //endregion
 
@@ -219,7 +217,7 @@ public class Red5Specimen extends OpMode {
         cycleI = drive.trajectorySequenceBuilder(dropOffI2.end())
                 .lineTo(new Vector2d(25, 17))
                 .waitSeconds(0.1)
-                .lineTo(new Vector2d(32, 17))
+                .lineTo(new Vector2d(30, 17))
                 .waitSeconds(0.3)
 
                 //to high position
@@ -230,7 +228,7 @@ public class Red5Specimen extends OpMode {
                     for(int i=0; i<100; i++) {
                         spin.setPosition(0.1567);
                         bigWristR.setPosition(0.88);
-                        bigWristL.setPosition(0.1194);                       smallWrist.setPosition(0.05);
+                        bigWristL.setPosition(0.1194);
                         smallWrist.setPosition(0.05);
                     }
                 })
@@ -241,7 +239,7 @@ public class Red5Specimen extends OpMode {
                 //placement
                 .addTemporalMarker(3.4,() -> {
                     for(int i=0; i<100; i++) {
-                        smallWrist.setPosition(0.1567);
+                        smallWrist.setPosition(0.17);
                     }
                 })
                 .addTemporalMarker(3.6, this::jerk)
@@ -262,61 +260,6 @@ public class Red5Specimen extends OpMode {
                 .lineTo(new Vector2d(20, 5))
                 //.addTemporalMarker(8.5,() -> {drive.followTrajectorySequenceAsync(dropOffI, mail);})
                 .build();
-
-         /*dropOffII = drive.trajectorySequenceBuilder(cycleI.end())
-                .addTemporalMarker(5,() -> {
-                    homePosition();
-                })
-                .lineTo(new Vector2d(20, 5))
-                .splineToConstantHeading(new Vector2d(32, -38), Math.toRadians(0))
-                .lineTo(new Vector2d(30, -38))
-                .waitSeconds(3)
-                .addTemporalMarker(4, this::miniPickup)
-                .addTemporalMarker(5.5,() -> {
-                    claw.setPosition(0.6);
-                    bigWristR.setPosition(0.81);
-                    bigWristL.setPosition(0.19);
-                })
-                //.addTemporalMarker(6,() -> {drive.followTrajectorySequenceAsync(dropOffI, mail);})
-                .build();*/
-
-         /*dropOffI = drive.trajectorySequenceBuilder(preload.end())
-                .lineToLinearHeading(new Pose2d(15, -37, Math.toRadians(180)))
-                .addTemporalMarker(0,() -> {
-                    telemetry.addLine("NEW WALL POSITION");
-                    controlState = poseControlState.NEWWALL;
-                    extTarget = 0;
-                })
-                .addTemporalMarker(0.3,() -> {
-                    flpPosTarget = 0;
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                })
-                .addTemporalMarker(1.3,() -> {
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.6094);
-                    bigWristL.setPosition(0.39);
-                    smallWrist.setPosition(0.5317);
-                    claw.setPosition(0.3);
-                })
-
-                .lineTo(new Vector2d(10, -37))
-                .addTemporalMarker(1.2,() -> {
-                    claw.setPosition(0.3);
-                })
-                .addTemporalMarker(2,() -> {
-                    claw.setPosition(0.6);
-                })
-                .addTemporalMarker(2.4,() -> {
-                    bigWristR.setPosition(0.55);
-                    bigWristL.setPosition(0.45);
-                    smallWrist.setPosition(0.27);
-                })
-                //.addTemporalMarker(2.7,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
-                .waitSeconds(10)
-                .build();*/
         //endregion
 
         drive.followTrajectorySequenceAsync(preload, mail);
@@ -420,7 +363,7 @@ public class Red5Specimen extends OpMode {
         controlState = poseControlState.OLDWALL;
         if(flpPosTarget>1200) {
             extTarget = 40;
-            flpPosTarget = 1650;
+            flpPosTarget = 1860;
             if(Math.abs(extLMotor.getCurrentPosition())>1200){
                 spin.setPosition(0.1567);
                 bigWristR.setPosition(0.3194);
@@ -457,7 +400,7 @@ public class Red5Specimen extends OpMode {
             bigWristR.setPosition(0.88);
             bigWristL.setPosition(0.1194);
             smallWrist.setPosition(0.1567);
-            flpPosTarget = 1650;
+            flpPosTarget = 1860;
             jerkTimer.reset();
             while(jerkTimer.time() < 1.3) {
                 extOldCONTROLLER();
@@ -523,7 +466,7 @@ public class Red5Specimen extends OpMode {
         controlState = poseControlState.PICKUP;
         if(flpPosTarget>1200) {
             extTarget = 40;
-            flpPosTarget = 1650;
+            flpPosTarget = 1860;
             spin.setPosition(0.1528);
             bigWristR.setPosition(0.39);
             bigWristL.setPosition(0.6078);
@@ -540,7 +483,7 @@ public class Red5Specimen extends OpMode {
             bigWristR.setPosition(0.88);
             bigWristL.setPosition(0.1194);
             smallWrist.setPosition(0.1567);
-            flpPosTarget = 1650;
+            flpPosTarget = 1860;
             jerkTimer.reset();
             while(jerkTimer.time() < 1) {
                 extOldCONTROLLER();
@@ -663,12 +606,12 @@ public class Red5Specimen extends OpMode {
 
         double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
         telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>1700){
-            velocityVal=1700;
+        if(velocityVal>1500){
+            velocityVal=1500;
         }
-        else if (velocityVal<-1700)
+        else if (velocityVal<-1500)
         {
-            velocityVal = -1700;
+            velocityVal = -1500;
         }
         flipMotor.setVelocity(velocityVal);
     }
