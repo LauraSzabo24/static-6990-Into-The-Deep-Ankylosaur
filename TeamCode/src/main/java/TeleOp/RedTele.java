@@ -176,14 +176,20 @@ public class RedTele extends LinearOpMode {
     {
         extTarget = 0;
         notNormalLimits = false;
-        bigWristL.setPosition(0.13);
-        bigWristR.setPosition(0.87);
-        smallWrist.setPosition(0.1519);
+        bigWristL.setPosition(0.05); //0.13
+        bigWristR.setPosition(0.95); //0.87
+        smallWrist.setPosition(0.1519); //0.1519
         claw.setPosition(0.6);
         spin.setPosition(0.1528);
     }
     public void movementInitII()
     {
+        extTarget = 0;
+        bigWristL.setPosition(0.13);
+        bigWristR.setPosition(0.87);
+        smallWrist.setPosition(0.1519);
+        claw.setPosition(0.6);
+        spin.setPosition(0.1528);
     }
 
     //BASICS
@@ -201,7 +207,7 @@ public class RedTele extends LinearOpMode {
         editMode = true;
         waitForStart();
 
-        movementInitII();
+        //movementInitII();
         double cumutime = 0;
         if (isStopRequested()) return;
 
@@ -542,10 +548,12 @@ public class RedTele extends LinearOpMode {
                 }
                 else if(flpPosTarget>=1600)
                 {
-                    if (extTarget + extAmount >= 1120 - extAmount) {
-                        extTarget += Math.abs(Math.abs(extTarget) - 1120);
-                    } else {
-                        extTarget += extAmount;
+                    if(extTarget<=700) {
+                        if (extTarget + extAmount >= 700 - extAmount) {
+                            extTarget += Math.abs(Math.abs(extTarget) - 700);
+                        } else {
+                            extTarget += extAmount;
+                        }
                     }
                 }
             }
@@ -587,31 +595,33 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region FLIPPER
-            if(gamepad2.dpad_left && flpPosTarget>=0)
+            if(gamepad2.dpad_left)// && flpPosTarget>=0)
             {
                 telemetry.addLine("flp UP");
                 controlState = poseControlState.FREE;
+                flpPosTarget-=20;
 
-                if(flpPosTarget-20<=0)
+                /*if(flpPosTarget-20<=0)
                 {
                     flpPosTarget-=Math.abs(flpPosTarget);
                 }
                 else {
                     flpPosTarget-=20;
-                }
+                }*/
             }
-            else if(gamepad2.dpad_right && flpPosTarget<1860 && !(extTarget>500 && flpPosTarget<1200)) //1620
+            else if(gamepad2.dpad_right)// && flpPosTarget<1860 && !(extTarget>500 && flpPosTarget<1200)) //1620
             {
                 telemetry.addLine("flp DOWN");
                 controlState = poseControlState.FREE;
+                flpPosTarget+=20;
 
-                if(flpPosTarget+20>=1860)
+                /*if(flpPosTarget+20>=1860)
                 {
                     flpPosTarget+=Math.abs(1860-flpPosTarget);
                 }
                 else {
                     flpPosTarget+=20;
-                }
+                }*/
             }
 
             //COMBO MOVEMENT EXTENSION

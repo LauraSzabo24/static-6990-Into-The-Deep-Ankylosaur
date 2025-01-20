@@ -1,12 +1,9 @@
 package Autonomous;
 
-import androidx.annotation.NonNull;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -21,7 +18,7 @@ import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class Red5Specimen extends OpMode {
+public class Red5Specimen2Refs extends OpMode {
     NewMecanumDrive drive;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
@@ -92,10 +89,11 @@ public class Red5Specimen extends OpMode {
 
     }
     poseControlState controlState;
+    boolean firstRun;
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preset, preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
     //endregion
 
     @Override
@@ -104,14 +102,24 @@ public class Red5Specimen extends OpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Mailbox mail = new Mailbox();
         hardwareInit();
-        movementInitI();
         Pose2d startPose = new Pose2d(0,0,0);
         drive.setPoseEstimate(startPose);
         extTarget = 0;
         flpPosTarget = 0;
 
+        preset = drive.trajectorySequenceBuilder(startPose)
+                .back(1)
+                .forward(1)
+                .waitSeconds(2)
+                .addTemporalMarker(0.5,() -> {
+                    movementInitI();
+                })
+                .addTemporalMarker(5.5,() -> {drive.followTrajectorySequenceAsync(preload, mail);})
+                .build();
+
+
         //region PRELOAD & PICK UP GOOD
-        preload = drive.trajectorySequenceBuilder(startPose)
+        preload = drive.trajectorySequenceBuilder(preset.end())
                .lineTo(new Vector2d(30, 13))
                 .addTemporalMarker(0,() -> {
                     extTarget = 1060;
@@ -175,7 +183,6 @@ public class Red5Specimen extends OpMode {
                 .waitSeconds(10)
                 //far down
                 .addTemporalMarker(0,() -> {
-                    claw.setPosition(0.6);
                     spin.setPosition(0.7106);
                     for(int i=0; i<100; i++) {
                         bigWristR.setPosition(0.48);
@@ -183,7 +190,11 @@ public class Red5Specimen extends OpMode {
                         smallWrist.setPosition(0.3206);
                     }
                 })
-                .addTemporalMarker(1,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
+
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.6);
+                })
+                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
                 .build();
         //endregion
 
@@ -576,6 +587,15 @@ public class Red5Specimen extends OpMode {
         claw = hardwareMap.get(Servo.class, "CLAW");
     }
     public void movementInitI()
+    {
+        extTarget = 0;
+        bigWristL.setPosition(0.05); //0.13
+        bigWristR.setPosition(0.95); //0.87
+        smallWrist.setPosition(0.1519); //0.1519
+        claw.setPosition(0.6);
+        spin.setPosition(0.1528);
+    }
+    public void movementInitII()
     {
         extTarget = 0;
         bigWristL.setPosition(0.13);
