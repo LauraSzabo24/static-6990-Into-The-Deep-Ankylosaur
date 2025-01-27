@@ -40,7 +40,7 @@ public class RedTele extends LinearOpMode {
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 2.5, flpPI = 0, flpPD = 0;
+    public static double flpPP = 10, flpPI = 0.05, flpPD = 0;
     public static int flpPosTarget = 0;
     //endregion
 
@@ -91,7 +91,8 @@ public class RedTele extends LinearOpMode {
     {
         FREE,
         PICKUP,
-        WALL,
+        NEWWALL,
+        OLDWALL,
         LOW,
         HIGH,
         HOME,
@@ -176,11 +177,11 @@ public class RedTele extends LinearOpMode {
     {
         extTarget = 0;
         notNormalLimits = false;
-        bigWristL.setPosition(0.05); //0.13
-        bigWristR.setPosition(0.95); //0.87
-        smallWrist.setPosition(0.1519); //0.1519
+        bigWristL.setPosition(0.1967);
+        bigWristR.setPosition(0.8289);
+        smallWrist.setPosition(0.1967);
         claw.setPosition(0.6);
-        spin.setPosition(0.1528);
+        spin.setPosition(0.725);
     }
     public void movementInitII()
     {
@@ -294,103 +295,6 @@ public class RedTele extends LinearOpMode {
         drive.update();
         //endregion
 
-        /*
-        //region HANG
-        if(false && currG1.right_bumper && currG1.left_bumper && !oldG2.right_bumper && !oldG2.left_bumper)
-        {
-            switch(hangState)
-            {
-                case PHASEONE:
-                    telemetry.addLine("HANG PHASE ONE");
-                    gamepad2.setLedColor((255/255.0), 0,(174/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-                    //region PHASE ONE
-                    if(flpPosTarget>1200) {
-                        extTarget = 0;
-                        flpPosTarget = 1200;
-                        spin.setPosition(0.1528);
-                        bigWristR.setPosition(0.48);
-                        bigWristL.setPosition(0.5183);
-                        smallWrist.setPosition(0.3206);
-                    }
-                    else {
-                        extTarget = 0;
-                        jerkTimer.reset();
-                        while(jerkTimer.time() < 0.3) {
-                            driverAControls();
-                            //extNewCONTROLLER(extTarget);
-                            extOldCONTROLLER();
-                            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                        }
-                        flpPosTarget = 1650;
-                        jerkTimer.reset();
-                        while(jerkTimer.time() < 1) {
-                            driverAControls();
-                            //extNewCONTROLLER(extTarget);
-                            extOldCONTROLLER();
-                            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                        }
-                        spin.setPosition(0.1528);
-                        bigWristR.setPosition(0.48);
-                        bigWristL.setPosition(0.5183);
-                        smallWrist.setPosition(0.3206);
-                    }
-                    //endregion
-                    hangState = hangControlState.PHASETWO;
-                    break;
-                case PHASETWO:
-                    telemetry.addLine("HANG PHASE TWO");
-                    gamepad2.setLedColor((174/255.0), 0,(255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-
-                    //region PHASE TWO
-                    extTarget = 0;
-                    while(-extLMotor.getCurrentPosition()>1000) {
-                       // extNewCONTROLLER(extTarget);
-                        extOldCONTROLLER();
-                        drive.setMotorPowers(0.05,0.1,0.1,0.05);
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                    while(-extLMotor.getCurrentPosition()>800) {
-                        //extNewCONTROLLER(extTarget);
-                        extOldCONTROLLER();
-                        drive.setMotorPowers(0,0.1,0.1,0);
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                    //flpPosTarget=1300;
-                    while(-extLMotor.getCurrentPosition()>500) {
-                        //extNewCONTROLLER(extTarget);
-                        extOldCONTROLLER();
-                        drive.setMotorPowers(0,0.2,0.2,0);
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                    //endregion
-
-                    while(opModeIsActive())
-                    {
-                        //extNewCONTROLLER(extTarget);
-                        extOldCONTROLLER();
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                        RAINBOW(0.005);
-                        if(currG1.right_bumper && currG1.left_bumper && !oldG2.right_bumper && !oldG2.left_bumper)
-                        {
-                            hangState = hangControlState.CONFIRMATION;
-                            break;
-                        }
-                    }
-                    break;
-                case CONFIRMATION:
-                    telemetry.addLine("HANG CONFIRMATION");
-                    gamepad2.setLedColor(0, (26/255.0), (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-                    hangState = hangControlState.DISENGAGE;
-                    break;
-                case DISENGAGE:
-                    telemetry.addLine("HANG DISENGAGE");
-                    gamepad2.setLedColor(0, (238/255.0), (255/255.0), Gamepad.LED_DURATION_CONTINUOUS);
-                    hangState = hangControlState.PHASEONE;
-                    break;
-            }
-        }
-        //endregion
-        */
     }
     public void driverBControls()
     {
@@ -446,32 +350,36 @@ public class RedTele extends LinearOpMode {
                 bigWristL.setPosition(bigWristL.getPosition() + bigAmount);
                 bigWristR.setPosition(bigWristR.getPosition() - bigAmount);
             }
-            else if(gamepad2.x && bigWristR.getPosition()<=0.87+bigAmount)
+            else if(gamepad2.x && bigWristR.getPosition()<=0.8094+bigAmount)
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 controlState = poseControlState.FREE;
                 bigWristL.setPosition(bigWristL.getPosition() - bigAmount);
                 bigWristR.setPosition(bigWristR.getPosition() + bigAmount);
             }
-            else if (gamepad2.y)
+            else if (gamepad2.y) //OLD WALL
             {
-                bigWristR.setPosition(0.5394);
-                bigWristL.setPosition(0.46);
+                spin.setPosition(0.7122);
+                smallWrist.setPosition(0.5667);
+                bigWristR.setPosition(0.8094);
+                bigWristL.setPosition(0.1878);
             }
-            else if(gamepad2.a){
-                bigWristL.setPosition(0.13);
-                bigWristR.setPosition(0.87);
+            else if(gamepad2.a){ //NEW WALL
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.4867);
+                bigWristL.setPosition(0.7594);
+                bigWristR.setPosition(0.24);
             }
             //endregion
 
             //region SMALL WRIST
-            if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(0.9367-smallAmount))
+            if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(0.96-smallAmount))
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 smallWrist.setPosition(smallWrist.getPosition() + smallAmount);
                 controlState = poseControlState.FREE;
             }
-            else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1519-smallAmount)
+            else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1367-smallAmount)
             {
                 telemetry.addLine("WRIST MOVEMENT");
                 smallWrist.setPosition(smallWrist.getPosition() - smallAmount);
@@ -489,13 +397,13 @@ public class RedTele extends LinearOpMode {
                 switch(smallWristPos)
                 {
                     case 0:
-                        smallWrist.setPosition(0.1467);
+                        smallWrist.setPosition(0.1367);
                         break;
                     case 1:
-                        smallWrist.setPosition(0.5467);
+                        smallWrist.setPosition(0.5667);
                         break;
                     case 2:
-                        smallWrist.setPosition(0.9367);
+                        smallWrist.setPosition(0.96);
                         break;
                 }
             }
@@ -595,33 +503,29 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region FLIPPER
-            if(gamepad2.dpad_left)// && flpPosTarget>=0)
+            if(gamepad2.dpad_left && flpPosTarget>=0)
             {
                 telemetry.addLine("flp UP");
                 controlState = poseControlState.FREE;
-                flpPosTarget-=20;
-
-                /*if(flpPosTarget-20<=0)
+                if(flpPosTarget-20<=0)
                 {
                     flpPosTarget-=Math.abs(flpPosTarget);
                 }
                 else {
                     flpPosTarget-=20;
-                }*/
+                }
             }
-            else if(gamepad2.dpad_right)// && flpPosTarget<1860 && !(extTarget>500 && flpPosTarget<1200)) //1620
+            else if(gamepad2.dpad_right && flpPosTarget<3500 && !(extTarget>500 && flpPosTarget<2500))
             {
                 telemetry.addLine("flp DOWN");
                 controlState = poseControlState.FREE;
-                flpPosTarget+=20;
-
-                /*if(flpPosTarget+20>=1860)
+                if(flpPosTarget+20>=3500)
                 {
-                    flpPosTarget+=Math.abs(1860-flpPosTarget);
+                    flpPosTarget+=Math.abs(3500-flpPosTarget);
                 }
                 else {
                     flpPosTarget+=20;
-                }*/
+                }
             }
 
             //COMBO MOVEMENT EXTENSION
@@ -652,15 +556,14 @@ public class RedTele extends LinearOpMode {
     }
     public void setStates()
     {
-        //region HIGH POSITION
+        //region HIGH POSITION  Y/GREEN
         if(controlState != poseControlState.HIGH && currG2.y && !oldG2.y)
         {
             telemetry.addLine("HIGH POSITION");
             controlState = poseControlState.HIGH;
-            if(flpPosTarget<200) {
-                extTarget = 1160;
+            if(flpPosTarget<1000) {
                 flpPosTarget = 0;
-                if(Math.abs(extLMotor.getCurrentPosition())>1200){
+                if(Math.abs(extLMotor.getCurrentPosition())>1200 || bigWristR.getPosition()>0.6){
                     spin.setPosition(0.7106);
                     bigWristR.setPosition(0.88);
                     bigWristL.setPosition(0.1194);
@@ -671,10 +574,11 @@ public class RedTele extends LinearOpMode {
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
                 }
+                extTarget = 1160;
                 spin.setPosition(0.7106);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
+                bigWristR.setPosition(0.0389);
+                bigWristL.setPosition(0.9589);
+                smallWrist.setPosition(0.175);
             }
             else {
                 extTarget = 0;
@@ -684,27 +588,27 @@ public class RedTele extends LinearOpMode {
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
                 jerkTimer.reset();
-                while(jerkTimer.time() < 0.5) {
+                while(jerkTimer.time() < 1.3) {
                     driverAControls();
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
                 jerkTimer.reset();
-                while(jerkTimer.time() < 1) {
+                while(jerkTimer.time() < 1.8) {
                     driverAControls();
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 spin.setPosition(0.7106);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
+                bigWristR.setPosition(0.0389);
+                bigWristL.setPosition(0.9589);
+                smallWrist.setPosition(0.175);
                 extTarget = 1160;
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
@@ -716,170 +620,19 @@ public class RedTele extends LinearOpMode {
         }
         //endregion
 
-        //region LOW POSITION
-        if(controlState != poseControlState.LOW && currG2.dpad_down && !oldG2.dpad_down)
-        {
-            telemetry.addLine("LOW POSITION");
-            controlState = poseControlState.LOW;
-            if(flpPosTarget<200) {
-                extTarget = 420;
-                flpPosTarget = 0;
-                if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                    spin.setPosition(0.7106);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                    while(jerkTimer.time() < 0.7) {
-                        driverAControls();
-                        extOldCONTROLLER();
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                }
-                spin.setPosition(0.7106);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-            }
-            else {
-                extTarget = 0;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3) {
-                    driverAControls();
-                    //extNewCONTROLLER(extTarget);
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                flpPosTarget = 0;
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-                jerkTimer.reset();
-                while(jerkTimer.time() < 1) {
-                    driverAControls();
-                    //extNewCONTROLLER(extTarget);
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                spin.setPosition(0.7106);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-                extTarget = 420;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.5) {
-                    driverAControls();
-                    //extNewCONTROLLER(extTarget);
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-        }
-        //endregion
-
-        //region HOME POSITION
-        if(controlState != poseControlState.HOME && ((currG2.dpad_right && !oldG2.dpad_right)) || (currG2.b && !oldG2.b))
-        {
-            telemetry.addLine("HOME POSITION");
-            controlState = poseControlState.HOME;
-            if(flpPosTarget<200) {
-                extTarget = 0;
-                flpPosTarget = 0;
-                if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.3194);
-                    bigWristL.setPosition(0.68);
-                    smallWrist.setPosition(0.6372);
-                    while(jerkTimer.time() < 0.7) {
-                        driverAControls();
-                        extOldCONTROLLER();
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-            }
-            else {
-                extTarget = 0;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3 && Math.abs(extLMotor.getCurrentPosition())<50) {
-                    driverAControls();
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3) {
-                    driverAControls();
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                flpPosTarget = 0;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 1) {
-                    driverAControls();
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-        }
-        //endregion
-
-        //region OLD WALL POSITION
-        /*if(controlState != poseControlState.WALL && currG2.x && !oldG2.x) {
-            telemetry.addLine("OLD WALL POSITION");
-            controlState = poseControlState.WALL;
-            if(flpPosTarget>1200) {
-                extTarget = 0;
-                flpPosTarget = 1650;
-                spin.setPosition(0.1528);
-                bigWristR.setPosition(0.48);
-                bigWristL.setPosition(0.5183);
-                smallWrist.setPosition(0.3206);
-            }
-            else {
-                extTarget = 0;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3) {
-                    driverAControls();
-                    //extNewCONTROLLER(extTarget);
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                flpPosTarget = 1650;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 1) {
-                    driverAControls();
-                    //extNewCONTROLLER(extTarget);
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-                spin.setPosition(0.1528);
-                bigWristR.setPosition(0.48);
-                bigWristL.setPosition(0.5183);
-                smallWrist.setPosition(0.3206);
-            }
-        }*/
-        //endregion
-
-        //region NEW WALL POSITION
-        if(controlState != poseControlState.WALL && ((currG2.x && !oldG2.x)))
+        //region NEW WALL POSITION  X/PINK
+        if(controlState != poseControlState.NEWWALL && ((currG2.x && !oldG2.x)))
         {
             telemetry.addLine("NEW WALL POSITION");
-            controlState = poseControlState.WALL;
-            if(flpPosTarget<200) {
+            controlState = poseControlState.NEWWALL;
+            if(flpPosTarget<700) {
                 extTarget = 0;
                 flpPosTarget = 0;
                 if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.3194);
-                    bigWristL.setPosition(0.68);
-                    smallWrist.setPosition(0.6372);
+                    spin.setPosition(0.7111);
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(1);
+                    bigWristR.setPosition(0);
                     while(jerkTimer.time() < 0.7) {
                         driverAControls();
                         extOldCONTROLLER();
@@ -892,11 +645,10 @@ public class RedTele extends LinearOpMode {
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.6289);
-                bigWristL.setPosition(0.37);
-                smallWrist.setPosition(0.5317);
-                claw.setPosition(0.3);
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.4867);
+                bigWristL.setPosition(0.7594);
+                bigWristR.setPosition(0.24);
             }
             else {
                 extTarget = 0;
@@ -907,119 +659,135 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
                 flpPosTarget = 0;
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
                 jerkTimer.reset();
                 while(jerkTimer.time() < 1) {
                     driverAControls();
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.6289);
-                bigWristL.setPosition(0.37);
-                smallWrist.setPosition(0.5317);
-                claw.setPosition(0.3);
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.4867);
+                bigWristL.setPosition(0.7594);
+                bigWristR.setPosition(0.24);
             }
         }
         //endregion
 
-        //region PICKUP POSITION
+        //region OLD WALL POSITION  B/RED
+        if(controlState != poseControlState.OLDWALL && ((currG2.b && !oldG2.b)))
+        {
+            telemetry.addLine("OLD WALL POSITION");
+            controlState = poseControlState.OLDWALL;
+            if(flpPosTarget<700) {
+                extTarget = 0;
+                flpPosTarget = 0;
+                if(Math.abs(extLMotor.getCurrentPosition())>1200){
+                    spin.setPosition(0.7111);
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(1);
+                    bigWristR.setPosition(0);
+                    while(jerkTimer.time() < 0.7) {
+                        driverAControls();
+                        extOldCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                }
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7122);
+                smallWrist.setPosition(0.5667);
+                bigWristR.setPosition(0.8094);
+                bigWristL.setPosition(0.1878);
+            }
+            else {
+                extTarget = 0;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                flpPosTarget = 0;
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
+                jerkTimer.reset();
+                while(jerkTimer.time() < 1) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7122);
+                smallWrist.setPosition(0.5667);
+                bigWristR.setPosition(0.8094);
+                bigWristL.setPosition(0.1878);
+            }
+        }
+        //endregion
+
+        //region PICKUP POSITION  A/BLUE
         if(controlState != poseControlState.PICKUP && currG2.a && !oldG2.a)
         {
             telemetry.addLine("PICKUP POSITION");
             controlState = poseControlState.PICKUP;
-            if(flpPosTarget>1200) {
+            if(flpPosTarget>3200) {
                 extTarget = 40;
-                flpPosTarget = 1860;
+                flpPosTarget = 3500;
                 if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.3194);
-                    bigWristL.setPosition(0.68);
-                    smallWrist.setPosition(0.6372);
-                    while(jerkTimer.time() < 0.7) {
+                    while(extLMotor.getCurrentPosition()>100 && jerkTimer.time() < 0.7) {
                         driverAControls();
                         extOldCONTROLLER();
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
                 }
-                spin.setPosition(0.1528);
-                bigWristR.setPosition(0.39);
-                bigWristL.setPosition(0.6078);
-                smallWrist.setPosition(0.3206);
+                spin.setPosition(0.7472);
+                bigWristR.setPosition(0.59);
+                bigWristL.setPosition(0.4089);
+                smallWrist.setPosition(0.1744);
             }
             else {
                 extTarget = 0;
-                if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.3194);
-                    bigWristL.setPosition(0.68);
-                    smallWrist.setPosition(0.6372);
-                    while(jerkTimer.time() < 0.7) {
-                        driverAControls();
-                        extOldCONTROLLER();
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                }
-                else if(!(Math.abs(extLMotor.getCurrentPosition())<200)) {
-                    jerkTimer.reset();
-                    while (jerkTimer.time() < 1) {
-                        driverAControls();
-                        extOldCONTROLLER();
-                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                    }
-                }
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.88);
-                bigWristL.setPosition(0.1194);
-                smallWrist.setPosition(0.1567);
-                flpPosTarget = 1860;
+                spin.setPosition(0.7106);
+                bigWristR.setPosition(0);
+                bigWristL.setPosition(1);
+                smallWrist.setPosition(0.1367);
                 jerkTimer.reset();
-                while(jerkTimer.time() < 1.3) {
+                while(extLMotor.getCurrentPosition()>1200 && jerkTimer.time() < 1) {
                     driverAControls();
                     extOldCONTROLLER();
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
-                spin.setPosition(0.1528);
-                bigWristR.setPosition(0.39);
-                bigWristL.setPosition(0.6078);
-                smallWrist.setPosition(0.3206);
+                flpPosTarget = 3500;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 1.8) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7472);
+                bigWristR.setPosition(0.59);
+                bigWristL.setPosition(0.4089);
+                smallWrist.setPosition(0.1744);
                 extTarget = 40;
-                jerkTimer.reset();
-                while(jerkTimer.time() < 0.3) {
-                    driverAControls();
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
             }
         }
         //endregion
 
-        //region JERK
-        if( flipMotor.getCurrentPosition()>-2000 && currG2.left_bumper && !oldG2.left_bumper)
-        {
-            telemetry.addLine("JERK");
-            if(extTarget>=300) {
-                extTarget = extTarget + 300;
-                jerkTimer.reset();
-                while (jerkTimer.time() < 0.3) {
-                    driverAControls();
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-            claw.setPosition(0.3);
-        }
-        //endregion
-
-        //region HIGH BASKET
+        //region HIGH BASKET  D-UP
         if(controlState != poseControlState.HIGHBASKET && currG2.dpad_up && !oldG2.dpad_up)
         {
             telemetry.addLine("HIGH BASKET POSITION");
             controlState = poseControlState.HIGHBASKET;
-            if(flpPosTarget<200) {
+            if(flpPosTarget<700) {
                 extTarget = 1500;
                 flpPosTarget = 0;
                 spin.setPosition(0.4556);
@@ -1061,12 +829,12 @@ public class RedTele extends LinearOpMode {
         }
         //endregion
 
-        //region LOWBASKET POSITION
+        //region LOWBASKET POSITION  D-LEFT
         if(controlState != poseControlState.LOWBASKET && currG2.dpad_left && !oldG2.dpad_left)
         {
             telemetry.addLine("LOWBASKET POSITION");
             controlState = poseControlState.LOWBASKET;
-            if(flpPosTarget<200) {
+            if(flpPosTarget<700) {
                 extTarget = 420;
                 flpPosTarget = 0;
                 if(Math.abs(extLMotor.getCurrentPosition())>1200){
@@ -1122,7 +890,141 @@ public class RedTele extends LinearOpMode {
         }
         //endregion
 
-        //region CLAW
+        //region LOW POSITION  D-DOWN
+        if(controlState != poseControlState.LOW && currG2.dpad_down && !oldG2.dpad_down)
+        {
+            telemetry.addLine("LOW POSITION");
+            controlState = poseControlState.LOW;
+            if(flpPosTarget<1000) {
+                flpPosTarget = 0;
+                if(Math.abs(extLMotor.getCurrentPosition())>1200 || bigWristR.getPosition()>0.8){
+                    spin.setPosition(0.7106);
+                    bigWristR.setPosition(0.88);
+                    bigWristL.setPosition(0.1194);
+                    smallWrist.setPosition(0.1567);
+                    while(jerkTimer.time() < 0.7) {
+                        driverAControls();
+                        extOldCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                }
+                extTarget = 440;
+                spin.setPosition(0.7106);
+                bigWristR.setPosition(0.0389);
+                bigWristL.setPosition(0.9589);
+                smallWrist.setPosition(0.175);
+            }
+            else {
+                extTarget = 0;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
+                jerkTimer.reset();
+                while(jerkTimer.time() < 1.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                flpPosTarget = 0;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 1.5) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7106);
+                bigWristR.setPosition(0.0389);
+                bigWristL.setPosition(0.9589);
+                smallWrist.setPosition(0.175);
+                extTarget = 440;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.5) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+            }
+        }
+        //endregion
+
+        //region HOME POSITION  D-RIGHT
+        if(controlState != poseControlState.HOME && (currG2.dpad_right && !oldG2.dpad_right))
+        {
+            telemetry.addLine("HOME POSITION");
+            controlState = poseControlState.HOME;
+            if(flpPosTarget<700) {
+                extTarget = 0;
+                flpPosTarget = 0;
+                if(Math.abs(extLMotor.getCurrentPosition())>1200){
+                    spin.setPosition(0.7111);
+                    bigWristR.setPosition(0.3194);
+                    bigWristL.setPosition(0.68);
+                    smallWrist.setPosition(0.6372);
+                    while(jerkTimer.time() < 0.7) {
+                        driverAControls();
+                        extOldCONTROLLER();
+                        flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                    }
+                }
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
+            }
+            else {
+                extTarget = 0;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.3 && Math.abs(extLMotor.getCurrentPosition())<50) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                spin.setPosition(0.7111);
+                smallWrist.setPosition(0.1367);
+                bigWristL.setPosition(1);
+                bigWristR.setPosition(0);
+                jerkTimer.reset();
+                while(jerkTimer.time() < 0.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+                flpPosTarget = 0;
+                jerkTimer.reset();
+                while(jerkTimer.time() < 1) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+            }
+        }
+        //endregion
+
+        //region JERK  BUMPER
+        if( flipMotor.getCurrentPosition()>-2000 && currG2.left_bumper && !oldG2.left_bumper)
+        {
+            telemetry.addLine("JERK");
+            if(extTarget>=300) {
+                extTarget = extTarget + 300;
+                jerkTimer.reset();
+                while (jerkTimer.time() < 0.3) {
+                    driverAControls();
+                    extOldCONTROLLER();
+                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+                }
+            }
+            claw.setPosition(0.3);
+        }
+        //endregion
+
+        //region CLAW  TOUCH
         if (currG2.touchpad && !oldG2.touchpad)
         {
             if(clawIH)

@@ -240,7 +240,7 @@ public class OrientationDetector extends OpenCvPipeline {
                     //check if need new picture
                     double yadiff = Math.abs(yside - aside);
                     printable = "BADDDDD yside = " + yside + " aside = " + aside + " difference = " + Math.abs(yside - aside);
-                    if (yadiff > 0 && yadiff < 100) { //works except purple star in bad spot when short side
+                    if (yadiff > 0 && yadiff < 100) {
                         printable = "GOOOOD yside = " + yside + " aside = " + aside + " difference = " + Math.abs(yside - aside);
                     } else {
                         foundError = true;
