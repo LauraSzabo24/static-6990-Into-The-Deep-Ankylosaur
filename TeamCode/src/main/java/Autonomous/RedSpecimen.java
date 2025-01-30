@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -18,7 +19,7 @@ import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class Red5Specimen2 extends OpMode {
+public class RedSpecimen extends OpMode {
     NewMecanumDrive drive;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
@@ -40,7 +41,7 @@ public class Red5Specimen2 extends OpMode {
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 2.5, flpPI = 0, flpPD = 0;
+    public static double flpPP = 10, flpPI = 0.05, flpPD = 0;
     public static int flpPosTarget = 0;
     //endregion
 
@@ -63,6 +64,8 @@ public class Red5Specimen2 extends OpMode {
     private double speed;
     private double multiply;
     double oldTime = 0;
+    IMU imu;
+    IMU.Parameters parameters;
     double extPercentage;
     //endregion
 
@@ -75,10 +78,19 @@ public class Red5Specimen2 extends OpMode {
     int smallWristPos = 0;
     //endregion
 
+    //region GAMEPADS
+    Gamepad currG1;
+    Gamepad oldG1;
+    Gamepad currG2;
+    Gamepad oldG2;
+    //endregion
+
     //region CONTROL STATE
-    private enum poseControlState {
+    private enum poseControlState
+    {
         FREE,
         PICKUP,
+        VARIPICKUP,
         NEWWALL,
         OLDWALL,
         LOW,
@@ -88,12 +100,33 @@ public class Red5Specimen2 extends OpMode {
         HIGHBASKET
 
     }
+    private enum speedControlState
+    {
+        NORMAL,
+        PRECISION,
+        SUPERSPEED
+    }
+    private enum hangControlState
+    {
+        PHASEONE,
+        PHASETWO,
+        CONFIRMATION,
+        DISENGAGE
+    }
+    speedControlState gameModeA;
+    speedControlState gameModeB;
+    hangControlState hangState;
     poseControlState controlState;
-    boolean firstRun;
+    boolean editMode = true;
+    boolean notNormalLimits = false;
+    boolean variablePickup = false;
+    public int flpLowLimit;
+    public int flpHighLimit;
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preloadOld, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preload, pickup, dropOff, cycle;
     //endregion
 
     @Override
@@ -102,14 +135,36 @@ public class Red5Specimen2 extends OpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Mailbox mail = new Mailbox();
         hardwareInit();
-        movementInitI();
         Pose2d startPose = new Pose2d(0,0,0);
         drive.setPoseEstimate(startPose);
-        extTarget = 0;
-        flpPosTarget = 0;
+        movementInitI();
+
+        preload = drive.trajectorySequenceBuilder(startPose)
+                .lineTo(new Vector2d(30, 13))
+                .build();
+
+        pickup = drive.trajectorySequenceBuilder(preload.end())
+                .lineTo(new Vector2d(20, 5))
+                .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                .lineTo(new Vector2d(20, -37))
+                .build();
+
+        dropOff = drive.trajectorySequenceBuilder(pickup.end())
+                .lineTo(new Vector2d(15, -37))
+                .waitSeconds(1)
+                .back(3)
+                .back(4)
+                .build();
+
+        cycle = drive.trajectorySequenceBuilder(dropOff.end())
+                .lineTo(new Vector2d(25, 17))
+                .waitSeconds(0.1)
+                .lineTo(new Vector2d(30, 17))
+                .waitSeconds(0.3)
+                .build();
 
         //region PRELOAD & PICK UP GOOD
-        preload = drive.trajectorySequenceBuilder(startPose)
+        preloadOld = drive.trajectorySequenceBuilder(startPose)
                .lineTo(new Vector2d(30, 13))
                 .addTemporalMarker(0,() -> {
                     extTarget = 1060;
@@ -152,7 +207,7 @@ public class Red5Specimen2 extends OpMode {
         //endregion
 
         //region DROP OFF I 1
-        dropOffI1 = drive.trajectorySequenceBuilder(preload.end())
+        dropOffI1 = drive.trajectorySequenceBuilder(preloadOld.end())
                 //go to old wall position
                 .lineTo(new Vector2d(15, -37))
                 .waitSeconds(10)
@@ -173,7 +228,6 @@ public class Red5Specimen2 extends OpMode {
                 .waitSeconds(10)
                 //far down
                 .addTemporalMarker(0,() -> {
-                    claw.setPosition(0.6);
                     spin.setPosition(0.7106);
                     for(int i=0; i<100; i++) {
                         bigWristR.setPosition(0.48);
@@ -181,7 +235,11 @@ public class Red5Specimen2 extends OpMode {
                         smallWrist.setPosition(0.3206);
                     }
                 })
-                .addTemporalMarker(1,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
+
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.6);
+                })
+                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
                 .build();
         //endregion
 
@@ -266,238 +324,17 @@ public class Red5Specimen2 extends OpMode {
 
     public void miniPickup()
     {
-        spin.setPosition(0.1572);
-        smallWrist.setPosition(0.6828);
-        bigWristR.setPosition(0.78);
-        bigWristL.setPosition(0.22);
-    }
-    public void highPosition()
-    {
-        telemetry.addLine("HIGH POSITION");
-        controlState = poseControlState.HIGH;
-        if(flpPosTarget<200) {
-            extTarget = 1060; //1160
-            flpPosTarget = 0;
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-        }
-        else {
-            extTarget = 0;
-            jerkTimer.reset();
-            while(-extLMotor.getCurrentPosition()>10 || jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            flpPosTarget = 0;
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            extTarget = 1100;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.5) {
-
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-        }
-    }
-    public void homePosition()
-    {
-        telemetry.addLine("HOME POSITION");
-        controlState = poseControlState.HOME;
-        if(flpPosTarget<200) {
-            extTarget = 0;
-            flpPosTarget = 0;
-            if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.3194);
-                bigWristL.setPosition(0.68);
-                smallWrist.setPosition(0.6372);
-                while(jerkTimer.time() < 0.7) {
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-        }
-        else {
-            extTarget = 0;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3 && Math.abs(extLMotor.getCurrentPosition())<50) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            flpPosTarget = 0;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-        }
-    }
-    public void oldWallPosition()
-    {
-        telemetry.addLine("OLD WALL POSITION");
-        controlState = poseControlState.OLDWALL;
-        if(flpPosTarget>1200) {
-            extTarget = 40;
-            flpPosTarget = 1860;
-            if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.3194);
-                bigWristL.setPosition(0.68);
-                smallWrist.setPosition(0.6372);
-                while(jerkTimer.time() < 0.7) {
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-            spin.setPosition(0.1528);
-            bigWristR.setPosition(0.48);
-            bigWristL.setPosition(0.5183);
-            smallWrist.setPosition(0.3206);
-        }
-        else {
-            extTarget = 0;
-            if(Math.abs(extLMotor.getCurrentPosition())>1200){
-                spin.setPosition(0.1567);
-                bigWristR.setPosition(0.3194);
-                bigWristL.setPosition(0.68);
-                smallWrist.setPosition(0.6372);
-                while(jerkTimer.time() < 0.7) {
-                    extOldCONTROLLER();
-                    flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-                }
-            }
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-            flpPosTarget = 1860;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1528);
-            bigWristR.setPosition(0.48);
-            bigWristL.setPosition(0.5183);
-            smallWrist.setPosition(0.3206);
-            extTarget = 40;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-        }
-    }
-    public void newWallPosition()
-    {
-        telemetry.addLine("NEW WALL POSITION");
-        controlState = poseControlState.NEWWALL;
-        if(flpPosTarget<200) {
-            extTarget = 0;
-            flpPosTarget = 0;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.6094);
-            bigWristL.setPosition(0.39);
-            smallWrist.setPosition(0.5317);
-            claw.setPosition(0.3);
-        }
-        else {
-            extTarget = 0;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            flpPosTarget = 0;
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.6094);
-            bigWristL.setPosition(0.39);
-            smallWrist.setPosition(0.5317);
-            claw.setPosition(0.3);
-        }
-    }
-    public void pickupPosition()
-    {
-        telemetry.addLine("PICKUP POSITION");
-        controlState = poseControlState.PICKUP;
-        if(flpPosTarget>1200) {
-            extTarget = 40;
-            flpPosTarget = 1860;
-            spin.setPosition(0.1528);
-            bigWristR.setPosition(0.39);
-            bigWristL.setPosition(0.6078);
-            smallWrist.setPosition(0.3206);
-        }
-        else {
-            extTarget = 0;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1567);
-            bigWristR.setPosition(0.88);
-            bigWristL.setPosition(0.1194);
-            smallWrist.setPosition(0.1567);
-            flpPosTarget = 1860;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 1) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-            spin.setPosition(0.1528);
-            bigWristR.setPosition(0.39);
-            bigWristL.setPosition(0.6078);
-            smallWrist.setPosition(0.3206);
-            extTarget = 40;
-            jerkTimer.reset();
-            while(jerkTimer.time() < 0.3) {
-                extOldCONTROLLER();
-                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-            }
-        }
+        spin.setPosition(0.1767);
+        smallWrist.setPosition(0.6067);
+        bigWristR.setPosition(0.01);
+        bigWristL.setPosition(0.99);
+          /*
+            AUTO PICKUP
+            bigL - 0.99
+            bigR - 0.01
+            small - 0.6067
+            spin - 0.1767
+             */
     }
     public void jerk()
     {
@@ -564,6 +401,7 @@ public class Red5Specimen2 extends OpMode {
         //drive motors
         drive = new NewMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        drive.reverseMotors();
         drive.setPoseEstimate(Mailbox.currentPose);
 
         //servos
@@ -576,20 +414,11 @@ public class Red5Specimen2 extends OpMode {
     public void movementInitI()
     {
         extTarget = 0;
-        bigWristL.setPosition(0.05); //0.13
-        bigWristR.setPosition(0.95); //0.87
-        smallWrist.setPosition(0.1519); //0.1519
-        claw.setPosition(0.6);
-        spin.setPosition(0.1528);
-    }
-    public void movementInitII()
-    {
-        extTarget = 0;
-        bigWristL.setPosition(0.13);
-        bigWristR.setPosition(0.87);
-        smallWrist.setPosition(0.1519);
-        claw.setPosition(0.6);
-        spin.setPosition(0.1528);
+        bigWristL.setPosition(0.1967);
+        bigWristR.setPosition(0.8289);
+        smallWrist.setPosition(0.1967);
+        claw.setPosition(0.7);
+        spin.setPosition(0.725);
     }
     public void extOldCONTROLLER()
     {
@@ -613,13 +442,76 @@ public class Red5Specimen2 extends OpMode {
 
         double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
         telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>1500){
-            velocityVal=1500;
+        if(velocityVal>1700){
+            velocityVal=1700;
         }
-        else if (velocityVal<-1500)
+        else if (velocityVal<-1700)
         {
-            velocityVal = -1500;
+            velocityVal = -1700;
         }
         flipMotor.setVelocity(velocityVal);
+    }
+    public void RAINBOW(double speed)
+    {
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(i, 1, 0, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(0, 1, i, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(0, i, 1, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=0; i<1; i+=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(i, 0, 1, Gamepad.LED_DURATION_CONTINUOUS);
+        }
+        for(double i=1; i>0; i-=0.01)
+        {
+            jerkTimer.reset();
+            while(jerkTimer.time() < speed) {
+                extOldCONTROLLER();
+                flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            }
+            gamepad1.setLedColor(1, i, 0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(1, 0, i, Gamepad.LED_DURATION_CONTINUOUS);
+        }
     }
 }

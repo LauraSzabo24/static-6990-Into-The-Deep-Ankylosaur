@@ -1,4 +1,4 @@
-package Autonomous;
+package Autonomous.Ancient.Meet3;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class Red5Specimen2Refs extends OpMode {
+public class Red5Specimen2 extends OpMode {
     NewMecanumDrive drive;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
@@ -93,7 +93,7 @@ public class Red5Specimen2Refs extends OpMode {
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preset, preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
+    TrajectorySequence preload, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
     //endregion
 
     @Override
@@ -102,24 +102,14 @@ public class Red5Specimen2Refs extends OpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Mailbox mail = new Mailbox();
         hardwareInit();
+        movementInitI();
         Pose2d startPose = new Pose2d(0,0,0);
         drive.setPoseEstimate(startPose);
         extTarget = 0;
         flpPosTarget = 0;
 
-        preset = drive.trajectorySequenceBuilder(startPose)
-                .back(1)
-                .forward(1)
-                .waitSeconds(2)
-                .addTemporalMarker(0.5,() -> {
-                    movementInitI();
-                })
-                .addTemporalMarker(5.5,() -> {drive.followTrajectorySequenceAsync(preload, mail);})
-                .build();
-
-
         //region PRELOAD & PICK UP GOOD
-        preload = drive.trajectorySequenceBuilder(preset.end())
+        preload = drive.trajectorySequenceBuilder(startPose)
                .lineTo(new Vector2d(30, 13))
                 .addTemporalMarker(0,() -> {
                     extTarget = 1060;
@@ -183,6 +173,7 @@ public class Red5Specimen2Refs extends OpMode {
                 .waitSeconds(10)
                 //far down
                 .addTemporalMarker(0,() -> {
+                    claw.setPosition(0.6);
                     spin.setPosition(0.7106);
                     for(int i=0; i<100; i++) {
                         bigWristR.setPosition(0.48);
@@ -190,11 +181,7 @@ public class Red5Specimen2Refs extends OpMode {
                         smallWrist.setPosition(0.3206);
                     }
                 })
-
-                .addTemporalMarker(1,() -> {
-                    claw.setPosition(0.6);
-                })
-                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
+                .addTemporalMarker(1,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
                 .build();
         //endregion
 

@@ -574,6 +574,7 @@ public class RedTele extends LinearOpMode {
             //endregion
         }
         else {
+
             setStates();
         }
     }
