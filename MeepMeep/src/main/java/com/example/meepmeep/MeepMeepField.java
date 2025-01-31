@@ -15,14 +15,10 @@ public class MeepMeepField {
                 // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
                 .setConstraints(60, 60, Math.toRadians(180), Math.toRadians(180), 12)
                 .followTrajectorySequence(drive -> drive.trajectorySequenceBuilder(new Pose2d(0, 0, Math.toRadians(0)))
-                        /*.lineTo(new Vector2d(32, 13))
-                        .waitSeconds(1)
-                        .lineTo(new Vector2d(20, 5))
-                        .splineToConstantHeading(new Vector2d(32, -33), Math.toRadians(0))
-                        .lineTo(new Vector2d(20, 5))
-                        */
-                        .lineToLinearHeading(new Pose2d(15, -37, Math.toRadians(180)))
-
+                        .lineTo(new Vector2d(28, 0))
+                        .lineTo(new Vector2d(24, 0))
+                        .splineToConstantHeading(new Vector2d(-1, -32), 0)
+                        //.splineToConstantHeading(new Vector2d(-1, -32), 0)
                         .build());
 
 

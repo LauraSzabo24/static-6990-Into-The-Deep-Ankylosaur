@@ -128,8 +128,7 @@ public class RedSpecimen extends OpMode {
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preloadOld, dropOffI1, dropOffI2, dropOffI3, dropOffII, dropOffIII, cycleI, cycleII, cycleIII, cycleIV;
-    TrajectorySequence preload, pickup, dropOff, cycle;
+    TrajectorySequence preload, inventoryPickup, inventoryCycle, pickup, onePickup, oneCycle, twoPickup, twoCycle, threePickup, threeCycle;
     //endregion
 
     @Override
@@ -142,6 +141,7 @@ public class RedSpecimen extends OpMode {
         drive.setPoseEstimate(startPose);
         movementInitI();
 
+        //region PRELOAD
         preload = drive.trajectorySequenceBuilder(startPose)
                 .lineTo(new Vector2d(16, 0))
                 .waitSeconds(0.001)
@@ -155,17 +155,22 @@ public class RedSpecimen extends OpMode {
                     bigWristL.setPosition(0.9589);
                     smallWrist.setPosition(0.257);
                 })
-                .addTemporalMarker(1.5,() -> {
+                .addTemporalMarker(1.3,() -> {
                     extTarget = 650;
                 })
-                .addTemporalMarker(2.1,() -> {
+                .addTemporalMarker(1.9,() -> {
                     claw.setPosition(0.3);
                 })
-                .addTemporalMarker(2.2,() -> {drive.followTrajectorySequenceAsync(pickup, mail);})
+                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(inventoryPickup, mail);})
                 .build();
+        //endregion
 
-        pickup = drive.trajectorySequenceBuilder(preload.end())
-                .lineTo(new Vector2d(20, 5))
+        //region INVENTORY PICKUP
+        inventoryPickup = drive.trajectorySequenceBuilder(preload.end())
+                .lineTo(new Vector2d(20, 0))
+                .splineToConstantHeading(new Vector2d(14, -32), 0, NewMecanumDrive.getVelocityConstraint(70, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(60))
+                .lineTo(new Vector2d(0, -32), NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(100))
+                .waitSeconds(10)
                 .addTemporalMarker(0,() -> {
                     extTarget = 0;
                     flpPosTarget = 0;
@@ -174,22 +179,88 @@ public class RedSpecimen extends OpMode {
                     bigWristL.setPosition(0.95);
                     bigWristR.setPosition(0.05);
                 })
-                .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(40))
-                .lineTo(new Vector2d(20, -37))
+                .addTemporalMarker(1,() -> {
+                    extTarget = 0;
+                    flpPosTarget = 0;
+                    spin.setPosition(0.7111);
+                    smallWrist.setPosition(0.5667);
+                    bigWristR.setPosition(0.8094);
+                    bigWristL.setPosition(0.1878);
+                })
+                .addTemporalMarker(2.2,() -> {
+                    claw.setPosition(1);//0.6
+                })
+                .addTemporalMarker(2.4,() -> {
+                    smallWrist.setPosition(0.4633);
+                    bigWristR.setPosition(0.7489);
+                    bigWristL.setPosition(0.2478);
+                })
+                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(inventoryCycle, mail);})
+                .build();
+        //endregion
+
+        //region INVENTORY CYCLE
+        inventoryCycle = drive.trajectorySequenceBuilder(inventoryPickup.end())
+                .splineToConstantHeading(new Vector2d(16, 3), 0, NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .lineTo(new Vector2d(26, 3), NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .waitSeconds(10)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1270;
+                    spin.setPosition(0.1567);
+                    bigWristR.setPosition(0.0389);
+                    bigWristL.setPosition(0.9589);
+                    smallWrist.setPosition(0.257);
+                })
+                .addTemporalMarker(3,() -> {
+                    extTarget = 650;
+                })
+                .addTemporalMarker(3.5,() -> {
+                    claw.setPosition(0.3);
+                })
+                .addTemporalMarker(3.6,() -> {drive.followTrajectorySequenceAsync(pickup, mail);})
+                .build();
+        //endregion
+
+        pickup = drive.trajectorySequenceBuilder(inventoryCycle.end())
+                .lineTo(new Vector2d(20, 0))
+                .splineToConstantHeading(new Vector2d(29, -38), 0, NewMecanumDrive.getVelocityConstraint(70, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(60))
+                .waitSeconds(10)
+                .addTemporalMarker(0,() -> {
+                    extTarget = 0;
+                    flpPosTarget = 0;
+                    spin.setPosition(0.1767);
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(0.95);
+                    bigWristR.setPosition(0.05);
+                })
+                .addTemporalMarker(1.3,() -> {
+                    spin.setPosition(0.1767);
+                    smallWrist.setPosition(0.6067);
+                    bigWristR.setPosition(0.01);
+                    bigWristL.setPosition(0.99);
+                })
                 .build();
 
-        dropOff = drive.trajectorySequenceBuilder(pickup.end())
-                .lineTo(new Vector2d(15, -37))
-                .waitSeconds(1)
-                .back(3)
-                .back(4)
-                .build();
-
-        cycle = drive.trajectorySequenceBuilder(dropOff.end())
-                .lineTo(new Vector2d(25, 17))
-                .waitSeconds(0.1)
-                .lineTo(new Vector2d(30, 17))
-                .waitSeconds(0.3)
+        oneCycle = drive.trajectorySequenceBuilder(pickup.end())
+                .splineToConstantHeading(new Vector2d(16, 3), 0, NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .lineTo(new Vector2d(26, 3), NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .waitSeconds(10)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1270;
+                    spin.setPosition(0.1567);
+                    bigWristR.setPosition(0.0389);
+                    bigWristL.setPosition(0.9589);
+                    smallWrist.setPosition(0.257);
+                })
+                .addTemporalMarker(3,() -> {
+                    extTarget = 650;
+                })
+                .addTemporalMarker(3.5,() -> {
+                    claw.setPosition(0.3);
+                })
+                //.addTemporalMarker(5,() -> {drive.followTrajectorySequenceAsync(twoPickup, mail);})
                 .build();
 
         drive.followTrajectorySequenceAsync(preload, mail);
