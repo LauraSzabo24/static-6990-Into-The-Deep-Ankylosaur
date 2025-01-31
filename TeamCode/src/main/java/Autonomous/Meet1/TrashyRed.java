@@ -1,4 +1,4 @@
-package Autonomous.Ancient.Meet1;
+package Autonomous.Meet1;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.geometry.Pose2d;

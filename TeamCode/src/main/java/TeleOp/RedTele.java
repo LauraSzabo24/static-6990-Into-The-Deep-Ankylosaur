@@ -562,6 +562,10 @@ public class RedTele extends LinearOpMode {
                     claw.setPosition(0.3);
                 }
                 clawIH = !clawIH;
+                if(controlState == poseControlState.VARIPICKUP || controlState == poseControlState.PICKUP)
+                {
+                    variablePickup = !variablePickup;
+                }
             }
             //endregion
 

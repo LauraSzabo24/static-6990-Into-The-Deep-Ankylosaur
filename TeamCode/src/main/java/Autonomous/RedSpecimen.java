@@ -1,9 +1,17 @@
 package Autonomous;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MinAccelerationConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TranslationalVelocityConstraint;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -17,6 +25,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
+
+import java.util.Arrays;
 
 @Autonomous
 public class RedSpecimen extends OpMode {
@@ -78,13 +88,6 @@ public class RedSpecimen extends OpMode {
     int smallWristPos = 0;
     //endregion
 
-    //region GAMEPADS
-    Gamepad currG1;
-    Gamepad oldG1;
-    Gamepad currG2;
-    Gamepad oldG2;
-    //endregion
-
     //region CONTROL STATE
     private enum poseControlState
     {
@@ -140,12 +143,38 @@ public class RedSpecimen extends OpMode {
         movementInitI();
 
         preload = drive.trajectorySequenceBuilder(startPose)
-                .lineTo(new Vector2d(30, 13))
+                .lineTo(new Vector2d(16, 0))
+                .waitSeconds(0.001)
+                .lineTo(new Vector2d(28, 0))
+                .waitSeconds(10)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1200;
+                    spin.setPosition(0.1567);
+                    bigWristR.setPosition(0.0389);
+                    bigWristL.setPosition(0.9589);
+                    smallWrist.setPosition(0.257);
+                })
+                .addTemporalMarker(1.5,() -> {
+                    extTarget = 650;
+                })
+                .addTemporalMarker(2.1,() -> {
+                    claw.setPosition(0.3);
+                })
+                .addTemporalMarker(2.2,() -> {drive.followTrajectorySequenceAsync(pickup, mail);})
                 .build();
 
         pickup = drive.trajectorySequenceBuilder(preload.end())
                 .lineTo(new Vector2d(20, 5))
-                .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                .addTemporalMarker(0,() -> {
+                    extTarget = 0;
+                    flpPosTarget = 0;
+                    spin.setPosition(0.7111);
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(0.95);
+                    bigWristR.setPosition(0.05);
+                })
+                .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(40))
                 .lineTo(new Vector2d(20, -37))
                 .build();
 
@@ -162,161 +191,6 @@ public class RedSpecimen extends OpMode {
                 .lineTo(new Vector2d(30, 17))
                 .waitSeconds(0.3)
                 .build();
-
-        //region PRELOAD & PICK UP GOOD
-        preloadOld = drive.trajectorySequenceBuilder(startPose)
-               .lineTo(new Vector2d(30, 13))
-                .addTemporalMarker(0,() -> {
-                    extTarget = 1060;
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                })
-                .addTemporalMarker(0.5,() -> {
-                    smallWrist.setPosition(0.05);
-                })
-                .addTemporalMarker(1.5,() -> {
-                    smallWrist.setPosition(0.17);
-                })
-               .addTemporalMarker(1.8, this::jerk)
-
-                .addTemporalMarker(2.2,() -> {
-                    extTarget = 0;
-                })
-                .addTemporalMarker(3,() -> {
-                    spin.setPosition(0.1567);
-                    bigWristR.setPosition(0.88);
-                    bigWristL.setPosition(0.1194);
-                    smallWrist.setPosition(0.1567);
-                })
-
-                .lineTo(new Vector2d(20, 5))
-                .splineToConstantHeading(new Vector2d(31, -32), Math.toRadians(0), NewMecanumDrive.getVelocityConstraint(50, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
-
-                .addTemporalMarker(4.3, this::miniPickup)
-                .addTemporalMarker(5,() -> {
-                    claw.setPosition(0.6);
-                    bigWristR.setPosition(0.81);
-                    bigWristL.setPosition(0.19);
-                })
-                .lineTo(new Vector2d(20, -37))
-                .addTemporalMarker(5.5,() -> {drive.followTrajectorySequenceAsync(dropOffI1, mail);})
-                .waitSeconds(10)
-                .build();
-        //endregion
-
-        //region DROP OFF I 1
-        dropOffI1 = drive.trajectorySequenceBuilder(preloadOld.end())
-                //go to old wall position
-                .lineTo(new Vector2d(15, -37))
-                .waitSeconds(10)
-                .addTemporalMarker(0,() -> {
-                    controlState = poseControlState.OLDWALL;
-                    extTarget = 40;
-                    flpPosTarget = 1700;
-                    smallWrist.setPosition(0.3206);
-                })
-                .addTemporalMarker(0.7,() -> {drive.followTrajectorySequenceAsync(dropOffI2, mail);})
-                .build();
-        //endregion
-
-        //region DROP OFF I 2
-        dropOffI2 = drive.trajectorySequenceBuilder(dropOffI1.end())
-                .waitSeconds(1)
-                .back(3)
-                .waitSeconds(10)
-                //far down
-                .addTemporalMarker(0,() -> {
-                    spin.setPosition(0.7106);
-                    for(int i=0; i<100; i++) {
-                        bigWristR.setPosition(0.48);
-                        bigWristL.setPosition(0.5183);
-                        smallWrist.setPosition(0.3206);
-                    }
-                })
-
-                .addTemporalMarker(1,() -> {
-                    claw.setPosition(0.6);
-                })
-                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(dropOffI3, mail);})
-                .build();
-        //endregion
-
-        //region DROP OFF I 3
-        dropOffI3 = drive.trajectorySequenceBuilder(dropOffI2.end())
-                .back(4)
-                .waitSeconds(10)
-                //close and lift
-                .addTemporalMarker(0,() -> {
-                    for(int i=0; i<100; i++) {
-                        claw.setPosition(0.3);
-                    }
-                })
-                .addTemporalMarker(1.5,() -> {
-                    for(int i=0; i<100; i++) {
-                        claw.setPosition(0.6);
-                    }
-                })
-                .addTemporalMarker(2,() -> {
-                    extTarget = 0;
-                    for(int i=0; i<100; i++) {
-                        bigWristR.setPosition(0.5394);
-                        bigWristL.setPosition(0.46);
-                    }
-                })
-                .addTemporalMarker(3.5,() -> {drive.followTrajectorySequenceAsync(cycleI, mail);})
-                .build();
-        //endregion
-
-        //region CYCLE I
-        cycleI = drive.trajectorySequenceBuilder(dropOffI2.end())
-                .lineTo(new Vector2d(25, 17))
-                .waitSeconds(0.1)
-                .lineTo(new Vector2d(30, 17))
-                .waitSeconds(0.3)
-
-                //to high position
-                .addTemporalMarker(0,() -> {
-                    flpPosTarget = -100;
-                })
-                .addTemporalMarker(0,() -> {
-                    for(int i=0; i<100; i++) {
-                        spin.setPosition(0.1567);
-                        bigWristR.setPosition(0.88);
-                        bigWristL.setPosition(0.1194);
-                        smallWrist.setPosition(0.05);
-                    }
-                })
-                .addTemporalMarker(2.5,() -> {
-                    extTarget = 1100;
-                })
-
-                //placement
-                .addTemporalMarker(3.4,() -> {
-                    for(int i=0; i<100; i++) {
-                        smallWrist.setPosition(0.17);
-                    }
-                })
-                .addTemporalMarker(3.6, this::jerk)
-
-
-                //to home position
-                .addTemporalMarker(4.5,() -> {
-                    extTarget = 0;
-                })
-                .addTemporalMarker(5.3,() -> {
-                    for(int i=0; i<100; i++) {
-                        spin.setPosition(0.1567);
-                        bigWristR.setPosition(0.88);
-                        bigWristL.setPosition(0.1194);
-                        smallWrist.setPosition(0.1567);
-                    }
-                })
-                .lineTo(new Vector2d(20, 5))
-                //.addTemporalMarker(8.5,() -> {drive.followTrajectorySequenceAsync(dropOffI, mail);})
-                .build();
-        //endregion
 
         drive.followTrajectorySequenceAsync(preload, mail);
         mail.setAutoEnd((new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading())));
@@ -401,7 +275,6 @@ public class RedSpecimen extends OpMode {
         //drive motors
         drive = new NewMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        drive.reverseMotors();
         drive.setPoseEstimate(Mailbox.currentPose);
 
         //servos
@@ -414,9 +287,9 @@ public class RedSpecimen extends OpMode {
     public void movementInitI()
     {
         extTarget = 0;
-        bigWristL.setPosition(0.1967);
-        bigWristR.setPosition(0.8289);
-        smallWrist.setPosition(0.1967);
+        bigWristL.setPosition(0.2078);
+        bigWristR.setPosition(0.76);
+        smallWrist.setPosition(0.1367);
         claw.setPosition(0.7);
         spin.setPosition(0.725);
     }

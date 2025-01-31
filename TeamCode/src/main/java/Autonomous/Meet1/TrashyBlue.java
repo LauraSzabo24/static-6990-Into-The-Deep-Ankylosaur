@@ -1,4 +1,4 @@
-package Autonomous.Ancient.Meet1;
+package Autonomous.Meet1;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -12,12 +12,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import Autonomous.Mailbox;
 
-
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class TrashyBlueTrashless extends LinearOpMode {
+public class TrashyBlue extends LinearOpMode {
     //region EXTENDER FLIPPER CONTROLS
     public static double ticksPerDegree = 537.7;
     private PIDController flp;
@@ -29,7 +28,6 @@ public class TrashyBlueTrashless extends LinearOpMode {
     public static int divider = 1;
     FtcDashboard dashboard;
     //endregion
-
     //region DRIVER A MATERIAL
     IMU imu;
     IMU.Parameters parameters;
@@ -88,12 +86,29 @@ public class TrashyBlueTrashless extends LinearOpMode {
 
         //region RIGHT
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
-                .forward(2)
-                .strafeLeft(40)
-                .forward(20)
-                .strafeRight(10)
+                .strafeRight(15)
+                /*.forward(16)
+                .strafeLeft(20)
+                .addDisplacementMarker(() -> {
+                    divider = 4;
+                    jerkTimer.reset();
+                    flpTarget = -740;
+                    for (int i = 0; i < 100; i++) {
+                        flpCONTROLLER();
+                    }
+                    extTarget = 1500;
+                    for (int i = 0; i < 100; i++) {
+                        extCONTROLLER();
+                    }
+                    spinnerServo.setPosition(0.6989);
+                    wristRServo.setPosition(0.555);
+                    wristLServo.setPosition(0.2444);
+                })*/
+                /*.back(5)
+                .strafeLeft(20)
+                .back(20)*/
                 .build();
-         //endregion
+        //endregion
 
         waitForStart();
         telemetry.setMsTransmissionInterval(50);
@@ -104,10 +119,21 @@ public class TrashyBlueTrashless extends LinearOpMode {
         drive.setPoseEstimate(startPose);
         clawLServo.setPosition(0.6);
         clawRServo.setPosition(0.2);
-
         drive.followTrajectorySequence(right);
         mail.setAutoEnd((new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading() + Math.toRadians(-180))));
 
+    }
+    public void movementInit()
+    {
+        wristRServo.setPosition(0);
+        wristLServo.setPosition(0.8);
+
+        clawLServo.setPosition(0.2);
+        clawRServo.setPosition(0.6);
+
+        spinnerServo.setPosition(0.1522);
+        flpTarget = -200;
+        extTarget = 0;
     }
     public void extCONTROLLER()
     {
@@ -124,7 +150,7 @@ public class TrashyBlueTrashless extends LinearOpMode {
         flp.setPID(flpP, flpI, flpD);
         int flpPose = flipMotor.getCurrentPosition();
         double flpPwr = flp.calculate(flpPose, flpTarget) + Math.cos(Math.toRadians(flpTarget/ticksPerDegree)) * flpF;
-        flipMotor.setPower(flpPwr * (1));
+        flipMotor.setPower(flpPwr * (1/divider));
 
         telemetry.addData("flpPos ", flpPose);
         telemetry.addData("flpTarget ", flpTarget);
