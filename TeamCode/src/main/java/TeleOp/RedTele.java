@@ -184,7 +184,7 @@ public class RedTele extends LinearOpMode {
         bigWristL.setPosition(0.1967);
         bigWristR.setPosition(0.8289);
         smallWrist.setPosition(0.1967);
-        claw.setPosition(0.7);
+        claw.setPosition(0.9);
         spin.setPosition(0.725);
     }
     public void movementInitII()
@@ -193,7 +193,7 @@ public class RedTele extends LinearOpMode {
         bigWristL.setPosition(0.13);
         bigWristR.setPosition(0.87);
         smallWrist.setPosition(0.1519);
-        claw.setPosition(0.7);
+        claw.setPosition(0.9);
         spin.setPosition(0.1528);
     }
 
@@ -556,7 +556,7 @@ public class RedTele extends LinearOpMode {
             {
                 if(clawIH)
                 {
-                    claw.setPosition(0.7);
+                    claw.setPosition(0.9);
                 }
                 else {
                     claw.setPosition(0.3);
@@ -1097,7 +1097,7 @@ public class RedTele extends LinearOpMode {
         {
             if(clawIH)
             {
-                claw.setPosition(0.7);
+                claw.setPosition(0.9);
             }
             else {
                 claw.setPosition(0.3);

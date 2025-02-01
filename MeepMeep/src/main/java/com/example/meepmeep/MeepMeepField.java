@@ -12,13 +12,13 @@ public class MeepMeepField {
         MeepMeep meepMeep = new MeepMeep(800);
 
         RoadRunnerBotEntity myBot = new DefaultBotBuilder(meepMeep)
-                // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
                 .setConstraints(60, 60, Math.toRadians(180), Math.toRadians(180), 12)
                 .followTrajectorySequence(drive -> drive.trajectorySequenceBuilder(new Pose2d(0, 0, Math.toRadians(0)))
-                        .lineTo(new Vector2d(28, 0))
-                        .lineTo(new Vector2d(24, 0))
-                        .splineToConstantHeading(new Vector2d(-1, -32), 0)
-                        //.splineToConstantHeading(new Vector2d(-1, -32), 0)
+                        .splineToConstantHeading(new Vector2d(20, 0),0)
+                        .splineToConstantHeading(new Vector2d(20, -22),0)
+                        .splineToConstantHeading(new Vector2d(30, -22),0)
+                        .splineToConstantHeading(new Vector2d(48, -36),0)
+                        .splineToConstantHeading(new Vector2d(10, -32),0)
                         .build());
 
 
