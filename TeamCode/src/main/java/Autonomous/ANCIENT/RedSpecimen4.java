@@ -1,4 +1,4 @@
-package Autonomous;
+package Autonomous.ANCIENT;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -139,7 +139,7 @@ public class RedSpecimen4 extends OpMode {
                 .waitSeconds(10)
                 .addTemporalMarker(0,() -> {
                     flpPosTarget = 0;
-                    extTarget = 1330;
+                    extTarget = 1230;
                     spin.setPosition(0.1567);
                     bigWristR.setPosition(0.0389);
                     bigWristL.setPosition(0.9589);
@@ -153,7 +153,7 @@ public class RedSpecimen4 extends OpMode {
                 })
                 .addTemporalMarker(2.4,() -> {drive.followTrajectorySequenceAsync(inventoryPickup, mail);})
                 .build();
-        //endregion
+        //endregionw
 
         //region INVENTORY PICKUP
         inventoryPickup = drive.trajectorySequenceBuilder(preload.end())
@@ -175,8 +175,8 @@ public class RedSpecimen4 extends OpMode {
                     flpPosTarget = 0;
                     spin.setPosition(0.7111);
                     smallWrist.setPosition(0.5667);
-                    bigWristR.setPosition(0.8094);
-                    bigWristL.setPosition(0.1878);
+                    bigWristR.setPosition(0.7894);
+                    bigWristL.setPosition(0.2078);
                 })
                 .addTemporalMarker(2.7,() -> {
                     claw.setPosition(0.3);//0.6
@@ -193,11 +193,11 @@ public class RedSpecimen4 extends OpMode {
         //region INVENTORY CYCLE
         inventoryCycle = drive.trajectorySequenceBuilder(inventoryPickup.end())
                 .splineToConstantHeading(new Vector2d(16, 3), 0, NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
-                .lineTo(new Vector2d(28, 3), NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .lineTo(new Vector2d(27, 3), NewMecanumDrive.getVelocityConstraint(60, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
                 .waitSeconds(10)
                 .addTemporalMarker(0,() -> {
                     flpPosTarget = 0;
-                    extTarget = 1350;
+                    extTarget = 1230;
                     spin.setPosition(0.1567);
                     bigWristR.setPosition(0.0389);
                     bigWristL.setPosition(0.9589);
@@ -217,7 +217,7 @@ public class RedSpecimen4 extends OpMode {
         oneIntake = drive.trajectorySequenceBuilder(inventoryCycle.end())
                 .lineTo(new Vector2d(20, 0))
                 .splineToConstantHeading(new Vector2d(27, -40.9), 0, NewMecanumDrive.getVelocityConstraint(70, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
-                .lineTo(new Vector2d(31, -40.9), NewMecanumDrive.getVelocityConstraint(15, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .lineTo(new Vector2d(31, -40.4), NewMecanumDrive.getVelocityConstraint(15, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
                 .waitSeconds(0.1)
                 .addTemporalMarker(0,() -> {
                     extTarget = 260;
@@ -259,7 +259,7 @@ public class RedSpecimen4 extends OpMode {
 
         //region INTAKE TWO
         twoIntake = drive.trajectorySequenceBuilder(oneIntake.end())
-               .lineTo(new Vector2d(34, -52), NewMecanumDrive.getVelocityConstraint(15, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+               .lineTo(new Vector2d(34, -51.3), NewMecanumDrive.getVelocityConstraint(15, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
                 .waitSeconds(0.4)
                 .addTemporalMarker(0,() -> {
                     extTarget = 260;
@@ -305,8 +305,8 @@ public class RedSpecimen4 extends OpMode {
                     flpPosTarget = 0;
                     spin.setPosition(0.7111);
                     smallWrist.setPosition(0.5667);
-                    bigWristR.setPosition(0.8094);
-                    bigWristL.setPosition(0.1878);
+                    bigWristR.setPosition(0.7894);
+                    bigWristL.setPosition(0.2078);
                 })
                 .addTemporalMarker(2,() -> {
                     claw.setPosition(0.3);//0.6
@@ -327,7 +327,7 @@ public class RedSpecimen4 extends OpMode {
                 .waitSeconds(10)
                 .addTemporalMarker(0,() -> {
                     flpPosTarget = 0;
-                    extTarget = 1350;
+                    extTarget = 1230;
                     spin.setPosition(0.1567);
                     bigWristR.setPosition(0.0389);
                     bigWristL.setPosition(0.9589);
@@ -336,10 +336,10 @@ public class RedSpecimen4 extends OpMode {
                 .addTemporalMarker(2.5,() -> {
                     extTarget = 650;
                 })
-                .addTemporalMarker(3,() -> {
+                .addTemporalMarker(3.5,() -> {
                     claw.setPosition(0.9);
                 })
-                .addTemporalMarker(3.1,() -> {drive.followTrajectorySequenceAsync(twoPickup, mail);})
+                .addTemporalMarker(3.6,() -> {drive.followTrajectorySequenceAsync(twoPickup, mail);})
                 .build();
         //endregion
 

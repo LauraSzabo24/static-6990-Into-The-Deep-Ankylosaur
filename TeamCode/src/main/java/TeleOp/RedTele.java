@@ -457,7 +457,7 @@ public class RedTele extends LinearOpMode {
                 {
                     controlState = poseControlState.FREE;
                 }
-                if(flpPosTarget<200)
+                if(flpPosTarget<200) //200
                 {
                     if (extTarget + extAmount >= 1520 - extAmount) {
                         extTarget += Math.abs(Math.abs(extTarget) - 1520);
@@ -483,7 +483,7 @@ public class RedTele extends LinearOpMode {
                 {
                     controlState = poseControlState.FREE;
                 }
-                if(flpPosTarget<200) {
+                if(flpPosTarget<200) { //200
                     if (extTarget - extAmount <= 0) {
                         extTarget -= Math.abs(extTarget);
                     } else {
@@ -602,7 +602,7 @@ public class RedTele extends LinearOpMode {
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
                 }
-                extTarget = 1330;
+                extTarget = 1130; //1330
                 spin.setPosition(0.1567);
                 bigWristR.setPosition(0.0389);
                 bigWristL.setPosition(0.9589);
@@ -637,7 +637,7 @@ public class RedTele extends LinearOpMode {
                 bigWristR.setPosition(0.0389);
                 bigWristL.setPosition(0.9589);
                 smallWrist.setPosition(0.257);
-                extTarget = 1330;
+                extTarget = 1130;
                 jerkTimer.reset();
                 while(jerkTimer.time() < 0.5) {
                     driverAControls();
