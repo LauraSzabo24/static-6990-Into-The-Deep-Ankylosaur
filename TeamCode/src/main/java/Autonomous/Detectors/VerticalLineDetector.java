@@ -16,10 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VerticalLineDetector extends OpenCvPipeline {
+    //region RANDOM JUNK
     Telemetry telemetry;
     Mat mat = new Mat();
     Mat goodDetection;
     public VerticalLineDetector(Telemetry t) { telemetry = t; }
+    boolean foundError = false;
+    boolean foundGoodPic = true;
+    //endregion
 
     //region FOR REFERENCE (0,0) in top left
         /*static final Rect SCREENSIZEBOX = new Rect( //make this the correct area
@@ -46,8 +50,6 @@ public class VerticalLineDetector extends OpenCvPipeline {
     static final Rect VerticalLine = new Rect(
             new Point(100, 60),
             new Point(170, 120));
-    boolean foundError = false;
-    boolean foundGoodPic = true;
     @Override
     public Mat processFrame(Mat input) {
         if(!foundGoodPic)
@@ -68,6 +70,7 @@ public class VerticalLineDetector extends OpenCvPipeline {
             //if 2/10 is yellow yellow wins
             //if less than 2 lines worth of pixel change it to neighboring color
             //record colors and amount of lines each has in order
+            //check if good block close enough if not scan next range
             //turn to distance
             //return distance, stop filming
         }

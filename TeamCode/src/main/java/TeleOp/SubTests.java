@@ -19,6 +19,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import java.util.ArrayList;
+import android.graphics.Color;
+
 
 import Autonomous.Mailbox;
 
@@ -55,6 +57,8 @@ public class SubTests extends LinearOpMode {
 
     //region SENSORS
     ColorSensor colorDetector;
+    ElapsedTime colorTimer = new ElapsedTime();
+    float hsvValues[];
     private enum color{
         RED,
         YELLOW,
@@ -62,6 +66,7 @@ public class SubTests extends LinearOpMode {
         GRAY
     }
     ArrayList<color> detections;
+    ArrayList<Integer> colorDeci, streakLengths, goodStreakLengths, streakPosStart, streakPosEnd;
     //endregion
 
     //region CONTROL STATE
@@ -108,6 +113,13 @@ public class SubTests extends LinearOpMode {
     {
         //RANDOM
         colorDetector = hardwareMap.get(RevColorSensorV3.class, "color");
+        detections = new ArrayList<color>();
+        streakLengths = new ArrayList<>();
+        goodStreakLengths = new ArrayList<>();
+        streakPosStart = new ArrayList<>();
+        streakPosEnd = new ArrayList<>();
+        colorDeci = new ArrayList<>();
+
 
         //PID
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -136,8 +148,8 @@ public class SubTests extends LinearOpMode {
 
         //servos
         smallWrist = hardwareMap.get(Servo.class, "SW");
-        bigWristL = hardwareMap.get(Servo.class, "BWL");
-        bigWristR = hardwareMap.get(Servo.class, "BWR");
+       // bigWristL = hardwareMap.get(Servo.class, "BWL");
+        //bigWristR = hardwareMap.get(Servo.class, "BWR");
         spin = hardwareMap.get(Servo.class, "SPIN");
         claw = hardwareMap.get(Servo.class, "CLAW");
 
@@ -146,13 +158,6 @@ public class SubTests extends LinearOpMode {
         oldG1 = new Gamepad();
         currG2 = new Gamepad();
         oldG2 = new Gamepad();
-
-        //mailbox
-        imu = hardwareMap.get(IMU.class, "imu");
-        parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        imu.initialize(parameters);
     }
 
     //BASICS
@@ -160,8 +165,8 @@ public class SubTests extends LinearOpMode {
     public void runOpMode() throws InterruptedException
     {
         hardwareInit();
-        flpLowLimit = 0;
-        flpHighLimit = 3500;
+        spin.setPosition(0.1528);
+        colorDetector.enableLed(true);
 
         clawIH = true;
         controlState = poseControlState.FREE;
@@ -187,18 +192,11 @@ public class SubTests extends LinearOpMode {
         currG1.copy(gamepad1);
         currG2.copy(gamepad2);
         telemetry.update();
-        drive.update();
-        poseEstimate = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading());
 
         //CONTROLS
-        //driverAControls();
         driverBControls();
         telemetry.addData("CURRENT POSITION STATE", controlState);
         printColors();
-
-        //EXTENDER & FLIPPER
-        //extOldCONTROLLER();
-       // flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
     }
 
     //DRIVING CONTROLS
@@ -245,36 +243,6 @@ public class SubTests extends LinearOpMode {
                     smallAmount = 0.03;
                     bigAmount = 0.06;
                     break;
-            }
-            //endregion
-
-            //region BIG WRIST Y/GREEN->UP  A/BLUE->DOWN
-            if(gamepad2.y && bigWristR.getPosition()>=0)
-            {
-                telemetry.addLine("WRIST MOVEMENT");
-                controlState = poseControlState.FREE;
-                bigWristL.setPosition(bigWristL.getPosition() + bigAmount);
-                bigWristR.setPosition(bigWristR.getPosition() - bigAmount);
-            }
-            else if(gamepad2.a && bigWristR.getPosition()<=0.8094+bigAmount)
-            {
-                telemetry.addLine("WRIST MOVEMENT");
-                controlState = poseControlState.FREE;
-                bigWristL.setPosition(bigWristL.getPosition() - bigAmount);
-                bigWristR.setPosition(bigWristR.getPosition() + bigAmount);
-            }
-            else if (gamepad2.x) //OLD WALL  X/PINK
-            {
-                spin.setPosition(0.7122);
-                smallWrist.setPosition(0.5667);
-                bigWristR.setPosition(0.8094);
-                bigWristL.setPosition(0.1878);
-            }
-            else if(gamepad2.b){ //NEW WALL  B?RED
-                spin.setPosition(0.7111);
-                smallWrist.setPosition(0.4867);
-                bigWristL.setPosition(0.7594);
-                bigWristR.setPosition(0.24);
             }
             //endregion
 
@@ -481,7 +449,7 @@ public class SubTests extends LinearOpMode {
     public void pickupBlock()
     {
         //region COLORS
-        detections = new ArrayList<color>();
+        detections.removeAll(detections);
         int[] redLow = new int[]{97,10,50};
         int[] redHigh = new int[]{252,117,93};
         int[] yellowLow = new int[]{79,74,17};
@@ -492,30 +460,42 @@ public class SubTests extends LinearOpMode {
 
         //region SPIN AROUND
         colorDetector.enableLed(true);
-        spin.setPosition(0.1528);
+        spin.setPosition(0);
+        while (colorTimer.time() < 2) {
+
+        }
         for(int i=0; i<24; i++)
         {
-            spin.setPosition(spin.getPosition() + 0.0353);
+            spin.setPosition(spin.getPosition() + 0.0416667);
+            colorTimer.reset();
+            while (colorTimer.time() < 0.05) {
+
+            }
             int[] found = new int[]{colorDetector.red(), colorDetector.green(), colorDetector.blue()};
+
             if((found[0]>redLow[0] && found[1]>redLow[1] && found[2]>redLow[2]) && (found[0]<redHigh[0] && found[1]<redHigh[1] && found[2]<redHigh[2]))
             {
                 detections.add(color.RED);
+                colorDeci.add(colorDetector.red());
             }
             else if((found[0]>yellowLow[0] && found[1]>yellowLow[1] && found[2]>yellowLow[2]) && (found[0]<yellowHigh[0] && found[1]<yellowHigh[1] && found[2]<yellowHigh[2]))
             {
                 detections.add(color.YELLOW);
+                colorDeci.add(colorDetector.red());
             }
             else if((found[0]>blueLow[0] && found[1]>blueLow[1] && found[2]>blueLow[2]) && (found[0]<blueHigh[0] && found[1]<blueHigh[1] && found[2]<blueHigh[2]))
             {
                 detections.add(color.BLUE);
+                colorDeci.add(colorDetector.red());
             }
             else{
                 detections.add(color.GRAY);
+                colorDeci.add(colorDetector.red());
             }
         }
         //endregion
 
-        //region FILL HOLES AND FIND RANGES
+        //region FILL HOLES
         if((!detections.get(0).equals(detections.get(23))) && (!detections.get(0).equals(detections.get(1))) && (detections.get(23).equals(detections.get(1))))
         {
             detections.set(0,detections.get(1));
@@ -533,12 +513,13 @@ public class SubTests extends LinearOpMode {
         }
         //endregion
 
-        //region RANGES
+        /*
+        //region FIND RANGES
         int streak = 0;
-        ArrayList<Integer> streakLengths = new ArrayList<>();
-        ArrayList<Integer> goodStreakLengths = new ArrayList<>();
-        ArrayList<Integer> streakPosStart = new ArrayList<>();
-        ArrayList<Integer> streakPosEnd = new ArrayList<>();
+        streakLengths.removeAll(streakLengths);
+        goodStreakLengths.removeAll(goodStreakLengths);
+        streakPosStart.removeAll(streakPosStart);
+        streakPosEnd.removeAll(streakPosEnd);
         boolean loopBack = false;
         for(int i=0; i<24; i++)
         {
@@ -568,31 +549,51 @@ public class SubTests extends LinearOpMode {
         }
         //endregion
 
-        //region FIGURE IT OUT -> add centering
+        //region FIGURE IT OUT
         double clawPos = 0.1528;
+        int centered = 0;
         switch(goodStreakLengths.size()){
             case 0:
                 //try again
                 break;
             case 1:
-                clawPos += (streakPosStart.get(0)+1)*0.0353;
+                centered = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
+                clawPos += (centered+1)*0.0353;
                 break;
             case 2:
-                clawPos += (streakPosStart.get(0)+1)*0.0353;
+                centered = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
+                clawPos += (centered+1)*0.0353;
                 break;
             default:
                 //find parallels or try again
                 break;
         }
         spin.setPosition(clawPos);
-        //endregion
+        //endregion*/
 
+        //timer+pickup, scan again to check if its grabbed
     }
     public void printColors()
     {
+        String detects = "";
+        String deetects = "";
         for(int i=0; i<23; i++)
         {
-            telemetry.addLine(detections.get(i) + "");
+            if(detections.size()>i)
+            {
+                detects+= detections.get(i) + " ";
+                deetects+=colorDeci.get(i) + " ";
+            }
         }
+        telemetry.addLine("DETECTIONS " + detects);
+        telemetry.addLine("DETECTIONSCOLOR " + deetects);
+        telemetry.addLine("STREAK COUNT " + streakLengths.size());
+        telemetry.addLine("GOOD STREAK COUNT " + goodStreakLengths.size());
+
+
+        telemetry.addData("RED", colorDetector.red());
+        telemetry.addData("GREEN", colorDetector.green());
+        telemetry.addData("BLUE", colorDetector.blue());
+
     }
 }
