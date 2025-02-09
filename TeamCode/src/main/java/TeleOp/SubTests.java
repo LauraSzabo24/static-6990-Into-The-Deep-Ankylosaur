@@ -566,10 +566,11 @@ public class SubTests extends LinearOpMode {
         spin.setPosition(clawPos);
         sleep(800);
         claw.setPosition(0.7);
-
         //endregion
 
-        //timer+pickup, scan again to check if its grabbed
+        //region DOUBLE CHECK
+
+        //endregion
     }
     public void printColors()
     {

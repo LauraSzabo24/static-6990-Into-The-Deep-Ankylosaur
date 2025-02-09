@@ -5,16 +5,19 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import Autonomous.Mailbox;
@@ -40,7 +43,7 @@ public class RedTele extends LinearOpMode {
     private double flpPosError = 0;
     private double flpPosISum = 0;
 
-    public static double flpPP = 10, flpPI = 0.05, flpPD = 0;
+    public static double flpPP = 13, flpPI = 0.3, flpPD = 0;
     public static int flpPosTarget = 0;
     //endregion
 
@@ -57,6 +60,7 @@ public class RedTele extends LinearOpMode {
     public static double extVP = 0.001, extVI = 0, extVD = 0;
     public static int extVeloTarget = 0;
     FtcDashboard dashboard;
+    //DistanceSensor extDistance;
     //endregion
 
     //region DRIVER A MATERIAL
@@ -134,6 +138,7 @@ public class RedTele extends LinearOpMode {
         //PID
         ext = new PIDController(extP, extI, extD);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        //extDistance = hardwareMap.get(Rev2mDistanceSensor.class, "dist");
 
         //arm motors
         flipMotor = hardwareMap.get(DcMotorEx.class, "FLIP");
@@ -203,7 +208,7 @@ public class RedTele extends LinearOpMode {
     {
         hardwareInit();
         flpLowLimit = 0;
-        flpHighLimit = 3500;
+        flpHighLimit = 1550;
 
         movementInitI();
         clawIH = true;
@@ -465,7 +470,7 @@ public class RedTele extends LinearOpMode {
                         extTarget += extAmount;
                     }
                 }
-                else if(flpPosTarget>=1600)
+                else if(flpPosTarget>=708)
                 {
                     if(extTarget<=700) {
                         if (extTarget + extAmount >= 700 - extAmount) {
@@ -490,7 +495,7 @@ public class RedTele extends LinearOpMode {
                         extTarget -= extAmount;
                     }
                 }
-                else if(flpPosTarget>=1600)
+                else if(flpPosTarget>=708)
                 {
                     if (extTarget - extAmount <= extAmount) {
                         extTarget -= Math.abs(extTarget-extAmount);
@@ -517,42 +522,8 @@ public class RedTele extends LinearOpMode {
             }
             //endregion
 
-            //region FLIPPER
-            if(gamepad2.dpad_left && flpPosTarget>=flpLowLimit)
-            {
-                telemetry.addLine("flp UP");
-                controlState = poseControlState.FREE;
-                if(flpPosTarget-20<=0)
-                {
-                    flpPosTarget-=Math.abs(flpPosTarget);
-                }
-                else {
-                    flpPosTarget-=20;
-                }
-            }
-            else if(gamepad2.dpad_right && flpPosTarget<flpHighLimit && !(extTarget>500 && flpPosTarget<2500 && flpHighLimit==3500))
-            {
-                telemetry.addLine("flp DOWN");
-                controlState = poseControlState.FREE;
-                if(flpPosTarget+20>=flpHighLimit)
-                {
-                    flpPosTarget+=Math.abs(flpHighLimit-flpPosTarget);
-                }
-                else {
-                    flpPosTarget+=20;
-                }
-            }
-
-            //COMBO MOVEMENT EXTENSION
-           /* if(extTarget>=200)
-            {
-                double flpPercentage = (flpPosTarget/1620.0);
-                extTarget -= extTarget*flpPercentage;
-            }*/
-            //endregion
-
             //region CLAW
-            if (currG2.touchpad && !oldG2.touchpad)
+            if ((currG2.touchpad && !oldG2.touchpad) || (currG2.dpad_right && !oldG2.dpad_right))
             {
                 if(clawIH)
                 {
@@ -578,7 +549,39 @@ public class RedTele extends LinearOpMode {
             //endregion
         }
         else {
+            //region FLIPPER
+            if(gamepad2.dpad_left && flpPosTarget>=flpLowLimit)
+            {
+                telemetry.addLine("flp UP");
+                controlState = poseControlState.FREE;
+                if(flpPosTarget-20<=0)
+                {
+                    flpPosTarget-=Math.abs(flpPosTarget);
+                }
+                else {
+                    flpPosTarget-=20;
+                }
+            }
+            else if(gamepad2.dpad_right && flpPosTarget<flpHighLimit && !(extTarget>500 && flpPosTarget<1000 && flpHighLimit==1550))
+            {
+                telemetry.addLine("flp DOWN");
+                controlState = poseControlState.FREE;
+                if(flpPosTarget+20>=flpHighLimit)
+                {
+                    flpPosTarget+=Math.abs(flpHighLimit-flpPosTarget);
+                }
+                else {
+                    flpPosTarget+=20;
+                }
+            }
 
+            //COMBO MOVEMENT EXTENSION
+           /* if(extTarget>=200)
+            {
+                double flpPercentage = (flpPosTarget/1620.0);
+                extTarget -= extTarget*flpPercentage;
+            }*/
+            //endregion
             setStates();
         }
     }
@@ -770,9 +773,9 @@ public class RedTele extends LinearOpMode {
             {
                 telemetry.addLine("PICKUP POSITION");
                 controlState = poseControlState.PICKUP;
-                if(flpPosTarget>3200) {
+                if(flpPosTarget>1400) {
                     extTarget = 40;
-                    flpPosTarget = 3500;
+                    flpPosTarget = 1550;
                     if(Math.abs(extLMotor.getCurrentPosition())>1200){
                         while(-extLMotor.getCurrentPosition()>100 && jerkTimer.time() < 0.7) {
                             driverAControls();
@@ -797,7 +800,7 @@ public class RedTele extends LinearOpMode {
                         extOldCONTROLLER();
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
-                    flpPosTarget = 3500;
+                    flpPosTarget = 1550;
                     jerkTimer.reset();
                     while(jerkTimer.time() < 1.8) {
                         driverAControls();
@@ -1214,7 +1217,10 @@ public class RedTele extends LinearOpMode {
         else{
             telemetry.addLine("CLAW OPEN");
         }
-
+        /*telemetry.addData("ext TARGET - ", extTarget);
+        telemetry.addData("motor Position ", -extLMotor.getCurrentPosition());
+        telemetry.addData("sensor Position ", extDistance.getDistance(DistanceUnit.CM));
+*/
         telemetry.addData("GAMEMODEB", gameModeB);
         telemetry.addData("flpPosition ", flipMotor.getCurrentPosition());
         telemetry.addData("flpTarget", flpPosTarget);
@@ -1222,15 +1228,15 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("extPosition ", -extLMotor.getCurrentPosition());
         telemetry.addData("extVelocity ", -extLMotor.getVelocity());
         telemetry.addData("\next percent - ", extPercentage);
-
-        telemetry.addData("\nspinner - ", spin.getPosition());
+        /*telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
         telemetry.addData("big wrist right - ", bigWristR.getPosition());
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
         telemetry.addData("claw - ", claw.getPosition());
-
-        telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
+*/
+        /*telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
         telemetry.addData("Y ODOMETRY POSITION", poseEstimate.getY());
         telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());
+        */
     }
 }
