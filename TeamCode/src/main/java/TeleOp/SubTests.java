@@ -65,8 +65,12 @@ public class SubTests extends LinearOpMode {
         BLUE,
         GRAY
     }
+    double red, green, blue;
+    double perRed, perGreen, perBlue;
     ArrayList<color> detections;
-    ArrayList<Integer> colorDeci, streakLengths, goodStreakLengths, streakPosStart, streakPosEnd;
+    ArrayList<Integer>  goodStreakLengths;
+    ArrayList<Double>  streakPosStart, streakPosEnd;
+
     //endregion
 
     //region CONTROL STATE
@@ -114,12 +118,9 @@ public class SubTests extends LinearOpMode {
         //RANDOM
         colorDetector = hardwareMap.get(RevColorSensorV3.class, "color");
         detections = new ArrayList<color>();
-        streakLengths = new ArrayList<>();
         goodStreakLengths = new ArrayList<>();
         streakPosStart = new ArrayList<>();
         streakPosEnd = new ArrayList<>();
-        colorDeci = new ArrayList<>();
-
 
         //PID
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -166,6 +167,8 @@ public class SubTests extends LinearOpMode {
     {
         hardwareInit();
         spin.setPosition(0.1528);
+        smallWrist.setPosition(0.98);
+        claw.setPosition(1);
         colorDetector.enableLed(true);
 
         clawIH = true;
@@ -450,47 +453,47 @@ public class SubTests extends LinearOpMode {
     {
         //region COLORS
         detections.removeAll(detections);
-        int[] redLow = new int[]{97,10,50};
-        int[] redHigh = new int[]{252,117,93};
-        int[] yellowLow = new int[]{79,74,17};
-        int[] yellowHigh = new int[]{255,186,122};
-        int[] blueLow = new int[]{11,69,61};
-        int[] blueHigh = new int[]{174,107,255};
+        double[] redHigh = new double[]{145,65,30};
+        double[] redLow = new double[]{159,72,37};
+        double[] yellowHigh = new double[]{115,122,28};
+        double[] yellowLow = new double[]{103,114,25};
+        double[] blueHigh = new double[]{37,64,160};
+        double[] blueLow = new double[]{32,62,153};
         //endregion
 
         //region SPIN AROUND
-        colorDetector.enableLed(true);
         spin.setPosition(0);
-        while (colorTimer.time() < 2) {
-
-        }
+        sleep(2000);
         for(int i=0; i<24; i++)
         {
             spin.setPosition(spin.getPosition() + 0.0416667);
             colorTimer.reset();
-            while (colorTimer.time() < 0.05) {
+            sleep(10);
+            double white = colorDetector.red()+colorDetector.green()+colorDetector.blue();
+            perRed = colorDetector.red()/white;
+            perGreen = colorDetector.green()/white;
+            perBlue = colorDetector.blue()/white;
+            telemetry.addLine("PEACH");
+            telemetry.addData("% RED", perRed);
+            telemetry.addData("% GREEN", perGreen);
+            telemetry.addData("% BLUE", perBlue);
+            telemetry.update();
+            sleep(10);
 
-            }
-            int[] found = new int[]{colorDetector.red(), colorDetector.green(), colorDetector.blue()};
-
-            if((found[0]>redLow[0] && found[1]>redLow[1] && found[2]>redLow[2]) && (found[0]<redHigh[0] && found[1]<redHigh[1] && found[2]<redHigh[2]))
+            if(perRed>0.52)
             {
                 detections.add(color.RED);
-                colorDeci.add(colorDetector.red());
             }
-            else if((found[0]>yellowLow[0] && found[1]>yellowLow[1] && found[2]>yellowLow[2]) && (found[0]<yellowHigh[0] && found[1]<yellowHigh[1] && found[2]<yellowHigh[2]))
+            else if(perBlue<0.14 && ((perRed-perGreen)<=0.05))
             {
                 detections.add(color.YELLOW);
-                colorDeci.add(colorDetector.red());
             }
-            else if((found[0]>blueLow[0] && found[1]>blueLow[1] && found[2]>blueLow[2]) && (found[0]<blueHigh[0] && found[1]<blueHigh[1] && found[2]<blueHigh[2]))
+            else if(perBlue>0.52)
             {
                 detections.add(color.BLUE);
-                colorDeci.add(colorDetector.red());
             }
             else{
                 detections.add(color.GRAY);
-                colorDeci.add(colorDetector.red());
             }
         }
         //endregion
@@ -513,63 +516,58 @@ public class SubTests extends LinearOpMode {
         }
         //endregion
 
-        /*
         //region FIND RANGES
         int streak = 0;
-        streakLengths.removeAll(streakLengths);
         goodStreakLengths.removeAll(goodStreakLengths);
         streakPosStart.removeAll(streakPosStart);
         streakPosEnd.removeAll(streakPosEnd);
-        boolean loopBack = false;
+        double currPos = 0.0416667*2;
         for(int i=0; i<24; i++)
         {
-            if(detections.get(i).equals(detections.get(i+1)) && detections.get(i).equals(color.YELLOW)) //&& is right color
+            currPos += 0.0416667;
+            if(detections.get(i).equals(color.YELLOW))
             {
                 streak++;
-                streakPosStart.add(i);
+                if(streak==1)
+                {
+                    streakPosStart.add(currPos);
+                }
             }
             else{
-                streakLengths.add(streak);
-                if(streak>6)
+                if(streak>2)
                 {
                     goodStreakLengths.add(streak);
+                    streakPosEnd.add(currPos);
                 }
                 streak = 0;
-                streakPosEnd.add(i);
-                if(loopBack)
-                {
-                    break;
-                }
             }
-            if(i==23 && !loopBack)
-            {
-                loopBack = true;
-                i = 0;
-            }
+        }
+        if(streak>2)
+        {
+            goodStreakLengths.add(streak);
+            streakPosEnd.add(currPos);
         }
         //endregion
 
         //region FIGURE IT OUT
-        double clawPos = 0.1528;
-        int centered = 0;
+        double clawPos = 0;
         switch(goodStreakLengths.size()){
             case 0:
                 //try again
                 break;
             case 1:
-                centered = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
-                clawPos += (centered+1)*0.0353;
-                break;
-            case 2:
-                centered = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
-                clawPos += (centered+1)*0.0353;
+                clawPos = streakPosStart.get(0);
+                //clawPos = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
                 break;
             default:
-                //find parallels or try again
+                clawPos = streakPosStart.get(0);
                 break;
         }
         spin.setPosition(clawPos);
-        //endregion*/
+        sleep(800);
+        claw.setPosition(0.7);
+
+        //endregion
 
         //timer+pickup, scan again to check if its grabbed
     }
@@ -582,18 +580,20 @@ public class SubTests extends LinearOpMode {
             if(detections.size()>i)
             {
                 detects+= detections.get(i) + " ";
-                deetects+=colorDeci.get(i) + " ";
             }
         }
         telemetry.addLine("DETECTIONS " + detects);
-        telemetry.addLine("DETECTIONSCOLOR " + deetects);
-        telemetry.addLine("STREAK COUNT " + streakLengths.size());
         telemetry.addLine("GOOD STREAK COUNT " + goodStreakLengths.size());
 
+        double white = colorDetector.red()+colorDetector.green()+colorDetector.blue();
+        red = ((colorDetector.red())/white)*255;
+        green = (colorDetector.green()/white)*255;
+        blue = (colorDetector.blue()/white)*255;
+        telemetry.addData("RED", red);
+        telemetry.addData("GREEN", green);
+        telemetry.addData("BLUE", blue);
+        telemetry.addData("WHITE", white);
 
-        telemetry.addData("RED", colorDetector.red());
-        telemetry.addData("GREEN", colorDetector.green());
-        telemetry.addData("BLUE", colorDetector.blue());
 
     }
 }
