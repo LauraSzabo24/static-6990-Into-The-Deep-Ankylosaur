@@ -6,9 +6,11 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -20,6 +22,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
+
+import java.util.ArrayList;
+
 import Autonomous.Mailbox;
 
 @TeleOp
@@ -60,7 +65,7 @@ public class RedTele extends LinearOpMode {
     public static double extVP = 0.001, extVI = 0, extVD = 0;
     public static int extVeloTarget = 0;
     FtcDashboard dashboard;
-    //DistanceSensor extDistance;
+    //DistanceSensor distanceSensor;
     //endregion
 
     //region DRIVER A MATERIAL
@@ -88,6 +93,24 @@ public class RedTele extends LinearOpMode {
     Gamepad oldG1;
     Gamepad currG2;
     Gamepad oldG2;
+    //endregion
+
+    //region SENSORS
+    ColorSensor colorDetector;
+    ElapsedTime colorTimer = new ElapsedTime();
+    float hsvValues[];
+    private enum color{
+        RED,
+        YELLOW,
+        BLUE,
+        GRAY
+    }
+    double red, green, blue;
+    double perRed, perGreen, perBlue;
+    ArrayList<color> detections;
+    ArrayList<Integer>  goodStreakLengths;
+    ArrayList<Double>  streakPosStart, streakPosEnd;
+
     //endregion
 
     //region CONTROL STATE
@@ -134,11 +157,16 @@ public class RedTele extends LinearOpMode {
     {
         //RANDOM
         dashboard = FtcDashboard.getInstance();
+        colorDetector = hardwareMap.get(RevColorSensorV3.class, "color");
+        detections = new ArrayList<color>();
+        goodStreakLengths = new ArrayList<>();
+        streakPosStart = new ArrayList<>();
+        streakPosEnd = new ArrayList<>();
 
         //PID
         ext = new PIDController(extP, extI, extD);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        //extDistance = hardwareMap.get(Rev2mDistanceSensor.class, "dist");
+        //distanceSensor = hardwareMap.get(DistanceSensor.class, "dist");
 
         //arm motors
         flipMotor = hardwareMap.get(DcMotorEx.class, "FLIP");
@@ -176,11 +204,11 @@ public class RedTele extends LinearOpMode {
         oldG2 = new Gamepad();
 
         //mailbox
-        imu = hardwareMap.get(IMU.class, "imu");
+       /* imu = hardwareMap.get(IMU.class, "imu");
         parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
                 RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
                 RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        imu.initialize(parameters);
+        imu.initialize(parameters);*/
     }
     public void movementInitI()
     {
@@ -208,7 +236,7 @@ public class RedTele extends LinearOpMode {
     {
         hardwareInit();
         flpLowLimit = 0;
-        flpHighLimit = 1550;
+        flpHighLimit = 1700; //1550
 
         movementInitI();
         clawIH = true;
@@ -335,7 +363,7 @@ public class RedTele extends LinearOpMode {
                 gameModeB = speedControlState.PRECISION;
             }
             if (gamepad2.left_trigger > 0.3) {
-                gameModeB = speedControlState.SUPERSPEED;
+                //gameModeB = speedControlState.SUPERSPEED;
             }
             switch(gameModeB){
                 case NORMAL:
@@ -360,6 +388,12 @@ public class RedTele extends LinearOpMode {
                 controlState = poseControlState.FREE;
                 bigWristL.setPosition(bigWristL.getPosition() + bigAmount);
                 bigWristR.setPosition(bigWristR.getPosition() - bigAmount);
+
+                /*if(flpPosTarget>1500)
+                {
+                    double flpPercentage = (bigWristL.getPosition())/1.0;
+                    smallWrist.setPosition(0.2978 + ((0.3489-0.2978)*flpPercentage));
+                }*/
             }
             else if(gamepad2.a && bigWristR.getPosition()<=0.8094+bigAmount)
             {
@@ -454,8 +488,8 @@ public class RedTele extends LinearOpMode {
             }
             //endregion
 
-            //region EXTENDER
-            if(gamepad2.dpad_up && extTarget<=1520)
+            //region EXTENDER reangle to top metal bar thing for specimen
+            if(gamepad2.dpad_up )//&& extTarget<=1520)
             {
                 telemetry.addLine("ext UP");
                 if(controlState != poseControlState.VARIPICKUP)
@@ -506,49 +540,6 @@ public class RedTele extends LinearOpMode {
             }
             //endregion
 
-            //region VARIABLE PICKUP
-            if(controlState == poseControlState.VARIPICKUP)
-            {
-                extPercentage = (extTarget-40.0)/700;
-                spin.setPosition(0.7106);
-                smallWrist.setPosition(0.1739 + ((0.1856-0.1739)*extPercentage));
-                bigWristL.setPosition(0.4289 + ((0.4089-0.4289)*extPercentage));
-                bigWristR.setPosition(0.57 + ((0.59-0.57)*extPercentage));
-
-                //EXT          40         700
-                //smallWrist - 0.1739 - 0.1856
-                //bigWristL - 0.4289 - 0.4089
-                //bigWristR - 0.57- 0.59
-            }
-            //endregion
-
-            //region CLAW
-            if ((currG2.touchpad && !oldG2.touchpad) || (currG2.dpad_right && !oldG2.dpad_right))
-            {
-                if(clawIH)
-                {
-                    claw.setPosition(0.9);
-                }
-                else {
-                    claw.setPosition(0.3);
-                }
-                clawIH = !clawIH;
-                if(controlState == poseControlState.VARIPICKUP || controlState == poseControlState.PICKUP)
-                {
-                    variablePickup = !variablePickup;
-                }
-            }
-            //endregion
-
-            //region LIMIT REMOVER
-            if(currG2.left_bumper && !oldG2.left_bumper && flpPosTarget>=flpLowLimit)
-            {
-                flpHighLimit = Integer.MAX_VALUE;
-                flpLowLimit = -Integer.MAX_VALUE;
-            }
-            //endregion
-        }
-        else {
             //region FLIPPER
             if(gamepad2.dpad_left && flpPosTarget>=flpLowLimit)
             {
@@ -562,7 +553,7 @@ public class RedTele extends LinearOpMode {
                     flpPosTarget-=20;
                 }
             }
-            else if(gamepad2.dpad_right && flpPosTarget<flpHighLimit && !(extTarget>500 && flpPosTarget<1000 && flpHighLimit==1550))
+            else if(gamepad2.dpad_right && flpPosTarget<flpHighLimit)// && !(extTarget>500 && flpPosTarget<1000 && flpHighLimit==1550))
             {
                 telemetry.addLine("flp DOWN");
                 controlState = poseControlState.FREE;
@@ -582,8 +573,198 @@ public class RedTele extends LinearOpMode {
                 extTarget -= extTarget*flpPercentage;
             }*/
             //endregion
-            setStates();
+
+            //region VARIABLE PICKUP
+            if(controlState == poseControlState.VARIPICKUP)
+            {
+                extPercentage = (extTarget-12/40.0)/700;
+                spin.setPosition(0.7106);
+                smallWrist.setPosition(0.2978 + ((0.3489-0.2978)*extPercentage));
+                bigWristL.setPosition(0.3783 + ((0.3583-0.3783)*extPercentage));
+                bigWristR.setPosition(0.6194 + ((0.6394-0.6194)*extPercentage));
+
+                //EXT          40         700
+                //smallWrist - 0.2978 - 0.3489
+                //bigWristL - 0.3783- 0.3583
+                //bigWristR - 0.6194- 0.6394
+            }
+            //endregion
+
+            //region CLAW
+            if ((currG2.touchpad && !oldG2.touchpad) || (currG2.left_trigger > 0.3 && oldG2.left_trigger < 0.3))
+            {
+                if(clawIH)
+                {
+                    claw.setPosition(0.9);
+                }
+                else {
+                    claw.setPosition(0.7);
+                }
+                clawIH = !clawIH;
+                if(controlState == poseControlState.VARIPICKUP || controlState == poseControlState.PICKUP)
+                {
+                    variablePickup = !variablePickup;
+                }
+            }
+            //endregion
+
+            //region BLOCK PICKUP
+            if(currG2.left_bumper && !oldG2.left_bumper)
+            {
+                pickupBlock();
+            }
+            //endregion
+
+            //region LIMIT REMOVER
+            /*if(currG2.left_bumper && !oldG2.left_bumper && flpPosTarget>=flpLowLimit)
+            {
+                flpHighLimit = Integer.MAX_VALUE;
+                flpLowLimit = -Integer.MAX_VALUE;
+            }*/
+            //endregion
+
         }
+        else {
+            setStates();
+            /*Back Basket
+            -ext - 1520
+            -flp - 400
+            -spin - hori
+            - big right - 0.6078
+            - big left - 0.3867
+            -small - 0.4628
+             */
+        }
+    }
+
+    public void pickupBlock()
+    {
+        //region COLORS
+        detections.removeAll(detections);
+        double[] redHigh = new double[]{145,65,30};
+        double[] redLow = new double[]{159,72,37};
+        double[] yellowHigh = new double[]{115,122,28};
+        double[] yellowLow = new double[]{103,114,25};
+        double[] blueHigh = new double[]{37,64,160};
+        double[] blueLow = new double[]{32,62,153};
+        //endregion
+
+        //region SPIN AROUND
+        spin.setPosition(0);
+        sleep(2000);
+        for(int i=0; i<24; i++)
+        {
+            extOldCONTROLLER();
+            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            spin.setPosition(spin.getPosition() + 0.0416667);
+            colorTimer.reset();
+            sleep(10);
+            extOldCONTROLLER();
+            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+            double white = colorDetector.red()+colorDetector.green()+colorDetector.blue();
+            perRed = colorDetector.red()/white;
+            perGreen = colorDetector.green()/white;
+            perBlue = colorDetector.blue()/white;
+            telemetry.addLine("PEACH");
+            telemetry.addData("% RED", perRed);
+            telemetry.addData("% GREEN", perGreen);
+            telemetry.addData("% BLUE", perBlue);
+            telemetry.update();
+            sleep(10);
+            extOldCONTROLLER();
+            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
+
+            if(perRed>0.52)
+            {
+                detections.add(color.RED);
+            }
+            else if(perBlue<0.14 && ((perRed-perGreen)<=0.05))
+            {
+                detections.add(color.YELLOW);
+            }
+            else if(perBlue>0.52)
+            {
+                detections.add(color.BLUE);
+            }
+            else{
+                detections.add(color.GRAY);
+            }
+        }
+        //endregion
+
+        //region FILL HOLES
+        if((!detections.get(0).equals(detections.get(23))) && (!detections.get(0).equals(detections.get(1))) && (detections.get(23).equals(detections.get(1))))
+        {
+            detections.set(0,detections.get(1));
+        }
+        if((!detections.get(23).equals(detections.get(22))) && (!detections.get(23).equals(detections.get(0))) && (detections.get(22).equals(detections.get(0))))
+        {
+            detections.set(23,detections.get(0));
+        }
+        for(int i=1; i<23; i++)
+        {
+            if((!detections.get(i).equals(detections.get(i-1))) && (!detections.get(i).equals(detections.get(i+1))) && (detections.get(i-1).equals(detections.get(i+1))))
+            {
+                detections.set(i,detections.get(i+1));
+            }
+        }
+        //endregion
+
+        //region FIND RANGES
+        int streak = 0;
+        goodStreakLengths.removeAll(goodStreakLengths);
+        streakPosStart.removeAll(streakPosStart);
+        streakPosEnd.removeAll(streakPosEnd);
+        double currPos = 0.0416667*2;
+        for(int i=0; i<24; i++)
+        {
+            currPos += 0.0416667;
+            if(detections.get(i).equals(color.YELLOW))
+            {
+                streak++;
+                if(streak==1)
+                {
+                    streakPosStart.add(currPos);
+                }
+            }
+            else{
+                if(streak>2)
+                {
+                    goodStreakLengths.add(streak);
+                    streakPosEnd.add(currPos);
+                }
+                streak = 0;
+            }
+        }
+        if(streak>2)
+        {
+            goodStreakLengths.add(streak);
+            streakPosEnd.add(currPos);
+        }
+        //endregion
+
+        //region FIGURE IT OUT
+        double clawPos = 0;
+        switch(goodStreakLengths.size()){
+            case 0:
+                //try again
+                break;
+            case 1:
+                clawPos = streakPosStart.get(0);
+                //clawPos = streakPosStart.get(0)+ (Math.abs(streakPosEnd.get(0)-streakPosStart.get(0))/2);
+                break;
+            default:
+                clawPos = streakPosStart.get(0);
+                break;
+        }
+        spin.setPosition(clawPos);
+        sleep(800);
+        claw.setPosition(0.7);
+        //endregion
+
+        //region DOUBLE CHECK
+
+        //endregion
     }
     public void setStates()
     {
@@ -775,7 +956,7 @@ public class RedTele extends LinearOpMode {
                 controlState = poseControlState.PICKUP;
                 if(flpPosTarget>1400) {
                     extTarget = 40;
-                    flpPosTarget = 1550;
+                    flpPosTarget = flpHighLimit;
                     if(Math.abs(extLMotor.getCurrentPosition())>1200){
                         while(-extLMotor.getCurrentPosition()>100 && jerkTimer.time() < 0.7) {
                             driverAControls();
@@ -800,7 +981,7 @@ public class RedTele extends LinearOpMode {
                         extOldCONTROLLER();
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                     }
-                    flpPosTarget = 1550;
+                    flpPosTarget = flpHighLimit;
                     jerkTimer.reset();
                     while(jerkTimer.time() < 1.8) {
                         driverAControls();
@@ -817,7 +998,7 @@ public class RedTele extends LinearOpMode {
             else{
                 controlState = poseControlState.VARIPICKUP;
                 telemetry.addLine("VARIABLE PICKUP");
-                claw.setPosition(0.3);
+                claw.setPosition(0.9);
             }
             variablePickup = !variablePickup;
         }
@@ -1091,7 +1272,7 @@ public class RedTele extends LinearOpMode {
                     flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
                 }
             }
-            claw.setPosition(0.3);
+            claw.setPosition(0.7);
         }
         //endregion
 
@@ -1103,7 +1284,7 @@ public class RedTele extends LinearOpMode {
                 claw.setPosition(0.9);
             }
             else {
-                claw.setPosition(0.3);
+                claw.setPosition(0.7);
             }
             clawIH = !clawIH;
         }
@@ -1217,10 +1398,10 @@ public class RedTele extends LinearOpMode {
         else{
             telemetry.addLine("CLAW OPEN");
         }
-        /*telemetry.addData("ext TARGET - ", extTarget);
-        telemetry.addData("motor Position ", -extLMotor.getCurrentPosition());
-        telemetry.addData("sensor Position ", extDistance.getDistance(DistanceUnit.CM));
-*/
+        telemetry.addData("ext TARGET - ", extTarget);
+        //telemetry.addData("motor Position ", -extLMotor.getCurrentPosition());
+        //telemetry.addData("sensor Position ", distanceSensor.getDistance(DistanceUnit.CM));
+
         telemetry.addData("GAMEMODEB", gameModeB);
         telemetry.addData("flpPosition ", flipMotor.getCurrentPosition());
         telemetry.addData("flpTarget", flpPosTarget);
@@ -1228,15 +1409,14 @@ public class RedTele extends LinearOpMode {
         telemetry.addData("extPosition ", -extLMotor.getCurrentPosition());
         telemetry.addData("extVelocity ", -extLMotor.getVelocity());
         telemetry.addData("\next percent - ", extPercentage);
-        /*telemetry.addData("\nspinner - ", spin.getPosition());
+        telemetry.addData("\nspinner - ", spin.getPosition());
         telemetry.addData("small wrist - ", smallWrist.getPosition());
         telemetry.addData("big wrist right - ", bigWristR.getPosition());
         telemetry.addData("big wrist left - ", bigWristL.getPosition());
         telemetry.addData("claw - ", claw.getPosition());
-*/
-        /*telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
+
+        telemetry.addData("X ODOMETRY POSITION", poseEstimate.getX());
         telemetry.addData("Y ODOMETRY POSITION", poseEstimate.getY());
         telemetry.addData("HEADING ODOMETRY POSITION", poseEstimate.getHeading());
-        */
     }
 }
