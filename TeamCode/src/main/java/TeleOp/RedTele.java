@@ -363,7 +363,7 @@ public class RedTele extends LinearOpMode {
                 gameModeB = speedControlState.PRECISION;
             }
             if (gamepad2.left_trigger > 0.3) {
-                //gameModeB = speedControlState.SUPERSPEED;
+                gameModeB = speedControlState.SUPERSPEED;
             }
             switch(gameModeB){
                 case NORMAL:
@@ -374,9 +374,9 @@ public class RedTele extends LinearOpMode {
                     bigAmount = 0.01;
                     break;
                 case SUPERSPEED:
-                    extAmount = 80;
-                    smallAmount = 0.03;
-                    bigAmount = 0.06;
+                    extAmount = 100;
+                    smallAmount = 0.07;
+                    bigAmount = 0.1;
                     break;
             }
             //endregion
@@ -591,7 +591,7 @@ public class RedTele extends LinearOpMode {
             //endregion
 
             //region CLAW
-            if ((currG2.touchpad && !oldG2.touchpad) || (currG2.left_trigger > 0.3 && oldG2.left_trigger < 0.3))
+            if ((currG2.touchpad && !oldG2.touchpad))// || (currG2.left_trigger > 0.3 && oldG2.left_trigger < 0.3))
             {
                 if(clawIH)
                 {
@@ -967,7 +967,7 @@ public class RedTele extends LinearOpMode {
                     spin.setPosition(0.7472);
                     bigWristR.setPosition(0.52);
                     bigWristL.setPosition(0.4789);
-                    smallWrist.setPosition(0.1294);
+                    smallWrist.setPosition(0.3489);
                 }
                 else {
                     extTarget = 0;
@@ -991,7 +991,7 @@ public class RedTele extends LinearOpMode {
                     spin.setPosition(0.7472);
                     bigWristR.setPosition(0.52);
                     bigWristL.setPosition(0.4789);
-                    smallWrist.setPosition(0.1294);
+                    smallWrist.setPosition(0.3489);
                     extTarget = 40;
                 }
             }

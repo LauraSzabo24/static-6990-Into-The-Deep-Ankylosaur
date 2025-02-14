@@ -119,8 +119,11 @@ public class HexaDeciBlue extends OpMode {
     //endregion
 
     //region TRAJECTORIES
-    TrajectorySequence preload, preloadDrop, hexaBlock, hexaDrop, hexaPlop, cycleOne, dropOne, cycleTwo, dropTwo, annoyingCycle, dropAnnoying, surprise;
-    Pose2d startPose, basketPose, onePose, preOnePose, twoPose, threePose, hexPose, preHexPose;
+    TrajectorySequence preload, preloadDrop, hexaBlock, hexaDrop,
+            hexaPlop, cycleOne, dropOne, plopOne, cycleTwo, dropTwo,
+            plopTwo, annoyingCycle, dropAnnoying, plopAnnoying,
+            surpriseBlock, surpriseDrop, surprisePlop, park;
+    Pose2d startPose, basketPose, onePose, preOnePose, twoPose, preTwoPose, threePose, preThreePose, hexPose, preHexPose, surprisePose;
     //endregion
     @Override
     public void init()
@@ -131,12 +134,19 @@ public class HexaDeciBlue extends OpMode {
         hardwareInit();
         startPose = new Pose2d(0,0,0);
         basketPose = new Pose2d(-19,5,0.8);
-        preOnePose = new Pose2d(-9.429,30,1.5656);
-        onePose = new Pose2d(-9.429,34.0315,1.5656);
-        twoPose = new Pose2d(-19.5166,34.0315,1.5656);
-        threePose = new Pose2d(-22.5,37.7163,3.16);
+
         preHexPose = new Pose2d(20,15,0);
         hexPose = new Pose2d(24,15,0);
+
+        preOnePose = new Pose2d(-9.5,27,1.5656);
+        onePose = new Pose2d(-9.5,37,1.5656);
+
+        preTwoPose = new Pose2d(-19.5,27,1.5656);
+        twoPose = new Pose2d(-19.5,37,1.5656);
+
+        preThreePose = new Pose2d(-17,37.7163,3.16);
+        threePose = new Pose2d(-23.5,37.7163,3.16);
+        surprisePose = new Pose2d(14.4,56.7,1.5656);
         drive.setPoseEstimate(startPose);
         movementInitI();
         //endregion
@@ -171,6 +181,7 @@ public class HexaDeciBlue extends OpMode {
                 .build();
         //endregion
 
+        //region HEXADECIMAL
         //region HEXABLOCK
         hexaBlock = drive.trajectorySequenceBuilder(preload.end())
                 .addTemporalMarker(0,() -> {
@@ -227,10 +238,12 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(1,() -> {
                     claw.setPosition(0.9);
                 })
-                //.addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(hexaBlock, mail);})
+                .addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(cycleOne, mail);})
                 .build();
         //endregion
+        //endregion
 
+        //region CYCLE ONE PARTS
         //region CYCLE ONE
         cycleOne = drive.trajectorySequenceBuilder(hexaPlop.end())
                 .addTemporalMarker(0,() -> {
@@ -239,7 +252,7 @@ public class HexaDeciBlue extends OpMode {
                     smallWrist.setPosition(0.5667);
                 })
                 .lineToLinearHeading(preOnePose)
-                .lineToLinearHeading(onePose, NewMecanumDrive.getVelocityConstraint(5, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .lineToLinearHeading(onePose, NewMecanumDrive.getVelocityConstraint(20, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
                 .addTemporalMarker(0.3,() -> {
                     extTarget = 200;
                     smallWrist.setPosition(0.1367);
@@ -251,48 +264,214 @@ public class HexaDeciBlue extends OpMode {
                     bigWristR.setPosition(0.04);
                     bigWristL.setPosition(0.96);
                 })
-                .addTemporalMarker(1.4,() -> {
-                    extTarget = 0;
+                .addTemporalMarker(1.8,() -> {
+                    extTarget = 60;
+                    claw.setPosition(0.3);
+                })
+                .addTemporalMarker(1.9,() -> {drive.followTrajectorySequenceAsync(dropOne, mail);})
+                .build();
+        //endregion
+
+        //region ONE DROP
+        dropOne = drive.trajectorySequenceBuilder(cycleOne.end())
+                .lineToLinearHeading(basketPose)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1520;
+                })
+                .addTemporalMarker(0.1,() -> {
+                    spin.setPosition(0.1528);
+                })
+                .addTemporalMarker(0.4,() -> {
+                    bigWristR.setPosition(0.6689);
+                    bigWristL.setPosition(0.3278);
+                    smallWrist.setPosition(0.5667);
+                })
+                .addTemporalMarker(1.5,() -> {drive.followTrajectorySequenceAsync(plopOne, mail);})
+                .build();
+        //endregion
+
+        //region ONE PLOP
+        plopOne = drive.trajectorySequenceBuilder(dropOne.end())
+                .back(4)
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.9);
+                })
+                .addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(cycleTwo, mail);})
+                .build();
+        //endregion
+        //endregion
+
+        //region CYCLE TWO PARTS
+        //region CYCLE TWO
+        cycleTwo = drive.trajectorySequenceBuilder(plopOne.end())
+                .addTemporalMarker(0,() -> {
+                    bigWristR.setPosition(0.58);
+                    bigWristL.setPosition(0.4);
+                    smallWrist.setPosition(0.5667);
+                })
+                .lineToLinearHeading(preTwoPose)
+                .lineToLinearHeading(twoPose, NewMecanumDrive.getVelocityConstraint(20, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .addTemporalMarker(0.3,() -> {
+                    extTarget = 200;
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(0.95);
+                    bigWristR.setPosition(0.05);
+                })
+                .addTemporalMarker(1,() -> {
+                    smallWrist.setPosition(0.6306);
+                    bigWristR.setPosition(0.04);
+                    bigWristL.setPosition(0.96);
                 })
                 .addTemporalMarker(1.8,() -> {
                     extTarget = 60;
                     claw.setPosition(0.3);
                 })
-                .addTemporalMarker(1.9,() -> {drive.followTrajectorySequenceAsync(hexaDrop, mail);})
+                .addTemporalMarker(1.9,() -> {drive.followTrajectorySequenceAsync(dropTwo, mail);})
                 .build();
+        //endregion
+
+        //region TWO DROP
+        dropTwo = drive.trajectorySequenceBuilder(cycleTwo.end())
+                .lineToLinearHeading(basketPose)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1550;
+                })
+                .addTemporalMarker(0.1,() -> {
+                    spin.setPosition(0.1528);
+                })
+                .addTemporalMarker(0.4,() -> {
+                    bigWristR.setPosition(0.6689);
+                    bigWristL.setPosition(0.3278);
+                    smallWrist.setPosition(0.5667);
+                })
+                .addTemporalMarker(1.5,() -> {drive.followTrajectorySequenceAsync(plopTwo, mail);})
+                .build();
+        //endregion
+
+        //region TWO PLOP
+        plopTwo = drive.trajectorySequenceBuilder(dropTwo.end())
+                .back(4)
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.9);
+                })
+                .addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(annoyingCycle, mail);})
+                .build();
+        //endregion
+        //endregion
+
+        //region ANNOYING PARTS
+        //region ANNOYING CYCLE
+        annoyingCycle = drive.trajectorySequenceBuilder(plopTwo.end())
+                .addTemporalMarker(0,() -> {
+                    bigWristR.setPosition(0.58);
+                    bigWristL.setPosition(0.4);
+                    smallWrist.setPosition(0.5667);
+                })
+                .lineToLinearHeading(preThreePose)
+                .lineToLinearHeading(threePose, NewMecanumDrive.getVelocityConstraint(30, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), NewMecanumDrive.getAccelerationConstraint(30))
+                .addTemporalMarker(0.3,() -> {
+                    extTarget = 230;
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(0.95);
+                    bigWristR.setPosition(0.05);
+                })
+                .addTemporalMarker(1,() -> {
+                    smallWrist.setPosition(0.6306);
+                    bigWristR.setPosition(0.04);
+                    bigWristL.setPosition(0.96);
+                    spin.setPosition(0.4239);
+                })
+                .addTemporalMarker(2.1,() -> {
+                    extTarget = 0;
+                    claw.setPosition(0.3);
+                })
+                .addTemporalMarker(2.2,() -> {drive.followTrajectorySequenceAsync(dropAnnoying, mail);})
+                .build();
+        //endregion
+
+        //region ANNOYING DROP
+        dropAnnoying = drive.trajectorySequenceBuilder(annoyingCycle.end())
+                .lineToLinearHeading(basketPose)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1550;
+                })
+                .addTemporalMarker(0.1,() -> {
+                    spin.setPosition(0.1528);
+                })
+                .addTemporalMarker(0.4,() -> {
+                    bigWristR.setPosition(0.6689);
+                    bigWristL.setPosition(0.3278);
+                    smallWrist.setPosition(0.5667);
+                })
+                .addTemporalMarker(1.5,() -> {drive.followTrajectorySequenceAsync(plopAnnoying, mail);})
+                .build();
+        //endregion
+
+        //region ANNOYING PLOP
+        plopAnnoying = drive.trajectorySequenceBuilder(dropAnnoying.end())
+                .back(4)
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.9);
+                })
+                .addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(surpriseBlock, mail);})
+                .build();
+        //endregion
+        //endregion
+
+        //region SURPRISE PARTS
+        //region SURPRISE BLOCK
+        surpriseBlock = drive.trajectorySequenceBuilder(plopAnnoying.end())
+                .addTemporalMarker(0,() -> {
+                    bigWristR.setPosition(0.58);
+                    bigWristL.setPosition(0.4);
+                    smallWrist.setPosition(0.5667);
+                })
+                .lineToLinearHeading(surprisePose)
+                .addTemporalMarker(0.3,() -> {
+                    extTarget = 200;
+                    smallWrist.setPosition(0.1367);
+                    bigWristL.setPosition(0.95);
+                    bigWristR.setPosition(0.05);
+                })
+                //.addTemporalMarker(1.9,() -> {drive.followTrajectorySequenceAsync(surpriseDrop, mail);})
+                .build();
+        //endregion
+
+        //region SURPRISE DROP
+        surpriseDrop = drive.trajectorySequenceBuilder(surpriseBlock.end())
+                .lineToLinearHeading(basketPose)
+                .addTemporalMarker(0,() -> {
+                    flpPosTarget = 0;
+                    extTarget = 1520;
+                })
+                .addTemporalMarker(0.1,() -> {
+                    spin.setPosition(0.1528);
+                })
+                .addTemporalMarker(0.4,() -> {
+                    bigWristR.setPosition(0.6689);
+                    bigWristL.setPosition(0.3278);
+                    smallWrist.setPosition(0.5667);
+                })
+                .addTemporalMarker(1.5,() -> {drive.followTrajectorySequenceAsync(plopOne, mail);})
+                .build();
+        //endregion
+
+        //region SURPRISE PLOP
+        surprisePlop = drive.trajectorySequenceBuilder(surpriseDrop.end())
+                .back(4)
+                .addTemporalMarker(1,() -> {
+                    claw.setPosition(0.9);
+                })
+                .build();
+        //endregion
         //endregion
 
         drive.followTrajectorySequenceAsync(preload, mail);
         mail.setAutoEnd((new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), drive.getPoseEstimate().getHeading())));
     }
-
-    public void miniPickup()
-    {
-        spin.setPosition(0.1767);
-        smallWrist.setPosition(0.6067);
-        bigWristR.setPosition(0.01);
-        bigWristL.setPosition(0.99);
-          /*
-            AUTO PICKUP
-            bigL - 0.99
-            bigR - 0.01
-            small - 0.6067
-            spin - 0.1767
-             */
-    }
-    public void jerk()
-    {
-        telemetry.addLine("JERK");
-        extTarget = extTarget - 600;
-        jerkTimer.reset();
-        while (jerkTimer.time() < 0.7) {
-            extOldCONTROLLER();
-            flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
-        }
-        extTarget = 908;
-        claw.setPosition(0.9);
-    }
-
     @Override
     public void loop()  {
         drive.update();
