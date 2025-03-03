@@ -17,11 +17,18 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+
 import java.util.ArrayList;
 import android.graphics.Color;
 
 
+import Autonomous.Detectors.OrientationDetector;
 import Autonomous.Mailbox;
 
 @TeleOp
@@ -115,6 +122,33 @@ public class SubTests extends LinearOpMode {
     //INITIALIZATIONS
     public void hardwareInit()
     {
+        //region CAMERA JUNK
+        int cameraMonitorViewId = hardwareMap.appContext
+                .getResources().getIdentifier("cameraMonitorViewId",
+                        "id", hardwareMap.appContext.getPackageName());
+
+        WebcamName camera = hardwareMap.get(WebcamName.class, "camera");
+        OpenCvCamera cam = OpenCvCameraFactory.getInstance().createWebcam(camera, cameraMonitorViewId);
+
+        OrientationDetector redDetector = new OrientationDetector(telemetry);
+        cam.setPipeline(redDetector);
+        cam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            @Override
+            public void onOpened() {
+                telemetry.addLine("CAMERA WORKS");
+                telemetry.update();
+                cam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode) {
+                telemetry.addData("THE CAMERA DID NOT OPEN PROPERLY SEND HELP", errorCode);
+                telemetry.update();
+            }
+        });
+        sleep(20);
+        //endregion
+
         //RANDOM
         colorDetector = hardwareMap.get(RevColorSensorV3.class, "color");
         detections = new ArrayList<color>();
@@ -166,10 +200,10 @@ public class SubTests extends LinearOpMode {
     public void runOpMode() throws InterruptedException
     {
         hardwareInit();
-        spin.setPosition(0.1528);
+        /*spin.setPosition(0.1528);
         smallWrist.setPosition(0.98);
         claw.setPosition(1);
-        colorDetector.enableLed(true);
+        colorDetector.enableLed(true);*/
 
         clawIH = true;
         controlState = poseControlState.FREE;
@@ -320,109 +354,6 @@ public class SubTests extends LinearOpMode {
             }
             //endregion
 
-            /*
-            //region EXTENDER
-            if(gamepad2.dpad_up && extTarget<=1520)
-            {
-                telemetry.addLine("ext UP");
-                if(controlState != poseControlState.VARIPICKUP)
-                {
-                    controlState = poseControlState.FREE;
-                }
-                if(flpPosTarget<200) //200
-                {
-                    if (extTarget + extAmount >= 1520 - extAmount) {
-                        extTarget += Math.abs(Math.abs(extTarget) - 1520);
-                    } else {
-                        extTarget += extAmount;
-                    }
-                }
-                else if(flpPosTarget>=1600)
-                {
-                    if(extTarget<=700) {
-                        if (extTarget + extAmount >= 700 - extAmount) {
-                            extTarget += Math.abs(Math.abs(extTarget) - 700);
-                        } else {
-                            extTarget += extAmount;
-                        }
-                    }
-                }
-            }
-            else if(gamepad2.dpad_down && extTarget>=0)
-            {
-                telemetry.addLine("ext DOWN");
-                if(controlState != poseControlState.VARIPICKUP)
-                {
-                    controlState = poseControlState.FREE;
-                }
-                if(flpPosTarget<200) { //200
-                    if (extTarget - extAmount <= 0) {
-                        extTarget -= Math.abs(extTarget);
-                    } else {
-                        extTarget -= extAmount;
-                    }
-                }
-                else if(flpPosTarget>=1600)
-                {
-                    if (extTarget - extAmount <= extAmount) {
-                        extTarget -= Math.abs(extTarget-extAmount);
-                    } else {
-                        extTarget -= extAmount;
-                    }
-                }
-            }
-            //endregion
-
-            //region VARIABLE PICKUP
-            if(controlState == poseControlState.VARIPICKUP)
-            {
-                extPercentage = (extTarget-40.0)/700;
-                spin.setPosition(0.7106);
-                smallWrist.setPosition(0.1739 + ((0.1856-0.1739)*extPercentage));
-                bigWristL.setPosition(0.4289 + ((0.4089-0.4289)*extPercentage));
-                bigWristR.setPosition(0.57 + ((0.59-0.57)*extPercentage));
-
-                //EXT          40         700
-                //smallWrist - 0.1739 - 0.1856
-                //bigWristL - 0.4289 - 0.4089
-                //bigWristR - 0.57- 0.59
-            }
-            //endregion
-
-            //region FLIPPER
-            if(gamepad2.dpad_left && flpPosTarget>=flpLowLimit)
-            {
-                telemetry.addLine("flp UP");
-                controlState = poseControlState.FREE;
-                if(flpPosTarget-20<=0)
-                {
-                    flpPosTarget-=Math.abs(flpPosTarget);
-                }
-                else {
-                    flpPosTarget-=20;
-                }
-            }
-            else if(gamepad2.dpad_right && flpPosTarget<flpHighLimit && !(extTarget>500 && flpPosTarget<2500 && flpHighLimit==3500))
-            {
-                telemetry.addLine("flp DOWN");
-                controlState = poseControlState.FREE;
-                if(flpPosTarget+20>=flpHighLimit)
-                {
-                    flpPosTarget+=Math.abs(flpHighLimit-flpPosTarget);
-                }
-                else {
-                    flpPosTarget+=20;
-                }
-            }
-
-            //COMBO MOVEMENT EXTENSION
-           /* if(extTarget>=200)
-            {
-                double flpPercentage = (flpPosTarget/1620.0);
-                extTarget -= extTarget*flpPercentage;
-            }*/
-            //endregion*/
-
             //region CLAW
             if (currG2.touchpad && !oldG2.touchpad)
             {
@@ -446,8 +377,16 @@ public class SubTests extends LinearOpMode {
             {
                 pickupBlock();
             }
+            if(currG2.right_bumper && !oldG2.right_bumper)
+            {
+                detectCamera();
+            }
             //endregion
         }
+    }
+    public void detectCamera()
+    {
+
     }
     public void pickupBlock()
     {
@@ -568,9 +507,6 @@ public class SubTests extends LinearOpMode {
         claw.setPosition(0.7);
         //endregion
 
-        //region DOUBLE CHECK
-
-        //endregion
     }
     public void printColors()
     {

@@ -213,11 +213,12 @@ public class RedTele extends LinearOpMode {
     public void movementInitI()
     {
         extTarget = 0;
+        flpPosTarget = 0;
         notNormalLimits = false;
-        bigWristL.setPosition(0.1967);
-        bigWristR.setPosition(0.8289);
-        smallWrist.setPosition(0.1967);
-        claw.setPosition(0.9);
+        bigWristL.setPosition(0.2478);
+        bigWristR.setPosition(0.7489);
+        smallWrist.setPosition(0.5117);
+        claw.setPosition(0.3);
         spin.setPosition(0.725);
     }
     public void movementInitII()
@@ -420,9 +421,12 @@ public class RedTele extends LinearOpMode {
             //region SMALL WRIST
             if(gamepad2.left_stick_x>0 && smallWrist.getPosition()<(0.96-smallAmount))
             {
-                telemetry.addLine("WRIST MOVEMENT");
-                smallWrist.setPosition(smallWrist.getPosition() + smallAmount);
-                controlState = poseControlState.FREE;
+                if(!(smallWrist.getPosition()<0 && bigWristR.getPosition()<0.07))
+                {
+                    telemetry.addLine("WRIST MOVEMENT");
+                    smallWrist.setPosition(smallWrist.getPosition() + smallAmount);
+                    controlState = poseControlState.FREE;
+                }
             }
             else if(gamepad2.left_stick_x<0 && smallWrist.getPosition()>=0.1367-smallAmount)
             {
@@ -983,7 +987,7 @@ public class RedTele extends LinearOpMode {
                     }
                     flpPosTarget = flpHighLimit;
                     jerkTimer.reset();
-                    while(jerkTimer.time() < 1.8) {
+                    while(jerkTimer.time() < 1.2) {
                         driverAControls();
                         extOldCONTROLLER();
                         flpCONTROLLER(flpPosTarget, flipMotor.getCurrentPosition());
@@ -1307,22 +1311,32 @@ public class RedTele extends LinearOpMode {
     public void flpCONTROLLER(int target, int state) //in with the target -> out with the velocity
     {
         int currError = target - state;
+
+        int steadyStateLimit = 20;
         double time = timer.seconds();
         timer.reset();
         flpPosISum += currError * time;
+        if (Math.abs(currError) <= 2) {
+            flpPosISum = 0;
+        }
+        if ((Math.abs(currError) > steadyStateLimit)) {
+            flpPosISum = 0;
+        }
+
         double deriv = (currError - flpPosError)/time;
         flpPosError = currError;
 
-        double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
-        telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>1700){
-            velocityVal=1700;
+        double velocityTarget = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
+        telemetry.addData("FLIP VELO", velocityTarget);
+        //velocity limiter
+        if(velocityTarget>1700){
+            velocityTarget=1700;
         }
-        else if (velocityVal<-1700)
+        else if (velocityTarget<-1700)
         {
-            velocityVal = -1700;
+            velocityTarget = -1700;
         }
-        flipMotor.setVelocity(velocityVal);
+        flipMotor.setVelocity(velocityTarget);
     }
 
     //RANDOM

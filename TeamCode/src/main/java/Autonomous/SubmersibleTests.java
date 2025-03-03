@@ -246,22 +246,32 @@ public class SubmersibleTests extends OpMode {
     public void flpCONTROLLER(int target, int state) //in with the target -> out with the velocity
     {
         int currError = target - state;
+
+        int steadyStateLimit = 20;
         double time = timer.seconds();
         timer.reset();
         flpPosISum += currError * time;
+        if (Math.abs(currError) <= 2) {
+            flpPosISum = 0;
+        }
+        if ((Math.abs(currError) > steadyStateLimit)) {
+            flpPosISum = 0;
+        }
+
         double deriv = (currError - flpPosError)/time;
         flpPosError = currError;
 
-        double velocityVal = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
-        telemetry.addData("FLIP VELO", velocityVal);
-        if(velocityVal>1700){
-            velocityVal=1700;
+        double velocityTarget = (flpPP * currError) + (flpPI * flpPosISum) + (flpPD*deriv);
+        telemetry.addData("FLIP VELO", velocityTarget);
+        //velocity limiter
+        if(velocityTarget>1700){
+            velocityTarget=1700;
         }
-        else if (velocityVal<-1700)
+        else if (velocityTarget<-1700)
         {
-            velocityVal = -1700;
+            velocityTarget = -1700;
         }
-        flipMotor.setVelocity(velocityVal);
+        flipMotor.setVelocity(velocityTarget);
     }
     public void RAINBOW(double speed)
     {
