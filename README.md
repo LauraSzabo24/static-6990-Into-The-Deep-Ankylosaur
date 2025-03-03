@@ -4,7 +4,7 @@ All important code files are found under TeamCode/src/main/java. Here there are 
 
   -Autonomous: Items under the Meet1 folder are outdated programs written for the autonomous portion. 
     
-  -TeleOp: There's only one file in here and that contains all the teleOp or rather driver control period's code. 
+  -TeleOp: RedTele contains all the teleOp or rather driver control period's code, SubTests is where I tested out the orientation detector
     
   -org/firstinspires/ftc/teamcode: These contain the files from the Roadrunner Quickstart.
     
