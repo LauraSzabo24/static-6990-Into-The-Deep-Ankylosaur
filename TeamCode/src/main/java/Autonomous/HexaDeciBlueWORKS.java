@@ -3,7 +3,6 @@ package Autonomous;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -15,12 +14,12 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.NewMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class HexaDeciBlue extends OpMode {
+@Disabled
+public class HexaDeciBlueWORKS extends OpMode {
     NewMecanumDrive drive;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
@@ -133,11 +132,11 @@ public class HexaDeciBlue extends OpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Mailbox mail = new Mailbox();
         hardwareInit();
-        int shift = -8;
+        int shift = -7;
         int yshift = 0;
         startPose = new Pose2d(0,0,0);
         preloader = new Pose2d(-5+ shift,5+yshift,0);
-        basketPose = new Pose2d(-20 + shift,3+yshift,0.8); //new Pose2d(-19,5,0.8)
+        basketPose = new Pose2d(-20 + shift,4+yshift,0.8); //new Pose2d(-19,5,0.8)
 
         /*preHexPose = new Pose2d(30,0.7,0);
         hexPose = new Pose2d(36,0.7,0);*/
@@ -181,12 +180,9 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0.4,() -> {
                     bigWristL.setPosition(0.68);
                     bigWristR.setPosition(0.3);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(1.5,() -> {
                     smallWrist.setPosition(0.5667);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(preloadDrop, mail);})
+                .addTemporalMarker(1.5,() -> {drive.followTrajectorySequenceAsync(preloadDrop, mail);})
                 .build();
         //endregion
 
@@ -196,7 +192,7 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(1,() -> {
                     claw.setPosition(0.9);
                 })
-                .addTemporalMarker(2,() -> {drive.followTrajectorySequenceAsync(cycleOne, mail);})
+                .addTemporalMarker(1.2,() -> {drive.followTrajectorySequenceAsync(cycleOne, mail);})
                 .build();
         //endregion
 
@@ -206,9 +202,6 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0,() -> {
                     bigWristL.setPosition(0.58);
                     bigWristR.setPosition(0.4);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(0.2,() -> {
                     smallWrist.setPosition(0.5667);
                 })
                 .lineToLinearHeading(onePose)
@@ -216,20 +209,14 @@ public class HexaDeciBlue extends OpMode {
                 //.lineToLinearHeading(onePose)
                 .addTemporalMarker(0.3,() -> {
                     extTarget = 200;
-                    smallWrist.setPosition(1);
+                    smallWrist.setPosition(0.1367);
                     bigWristR.setPosition(0.95);
                     bigWristL.setPosition(0.05);
-                })
-                .addTemporalMarker(0.8,() -> {
-                    smallWrist.setPosition(0.1367);
                 })
                 .addTemporalMarker(1,() -> {
                     smallWrist.setPosition(0.6306);
                     bigWristL.setPosition(0.04);
                     bigWristR.setPosition(0.96);
-                })
-                .addTemporalMarker(1.2,() -> {
-                    smallWrist.setPosition(0.6306);
                 })
                 .addTemporalMarker(1.3,() -> {
                     extTarget = 0;
@@ -254,12 +241,9 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0.4,() -> {
                     bigWristL.setPosition(0.76);
                     bigWristR.setPosition(0.24);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(1.5,() -> {
                     smallWrist.setPosition(0.5667);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(plopOne, mail);})
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(plopOne, mail);})
                 .build();
         //endregion
 
@@ -269,7 +253,7 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(1.5,() -> {
                     claw.setPosition(0.9);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(cycleTwo, mail);})
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(cycleTwo, mail);})
                 .build();
         //endregion
         //endregion
@@ -280,9 +264,6 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0,() -> {
                     bigWristL.setPosition(0.58);
                     bigWristR.setPosition(0.4);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(0.2,() -> {
                     smallWrist.setPosition(0.5667);
                 })
                 //.lineToLinearHeading(preTwoPose)
@@ -290,20 +271,14 @@ public class HexaDeciBlue extends OpMode {
                 .waitSeconds(10)
                 .addTemporalMarker(0.3,() -> {
                     extTarget = 200;
-                    smallWrist.setPosition(1);
+                    smallWrist.setPosition(0.1367);
                     bigWristR.setPosition(0.95);
                     bigWristL.setPosition(0.05);
                 })
-                .addTemporalMarker(0.8,() -> {
-                    smallWrist.setPosition(0.1367);
-                })
                 .addTemporalMarker(1,() -> {
-                    smallWrist.setPosition(1);
+                    smallWrist.setPosition(0.6306);
                     bigWristL.setPosition(0.04);
                     bigWristR.setPosition(0.96);
-                })
-                .addTemporalMarker(1.2,() -> {
-                    smallWrist.setPosition(0.6306);
                 })
                 .addTemporalMarker(1.3,() -> {
                     extTarget = 0;
@@ -328,12 +303,9 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0.4,() -> {
                     bigWristL.setPosition(0.76);
                     bigWristR.setPosition(0.24);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(1.5,() -> {
                     smallWrist.setPosition(0.5667);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(plopTwo, mail);})
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(plopTwo, mail);})
                 .build();
         //endregion
 
@@ -343,7 +315,7 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(1.5,() -> {
                     claw.setPosition(0.9);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(annoyingCycle, mail);})
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(annoyingCycle, mail);})
                 .build();
         //endregion
         //endregion
@@ -354,9 +326,6 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0,() -> {
                     bigWristL.setPosition(0.58);
                     bigWristR.setPosition(0.4);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(0.2,() -> {
                     smallWrist.setPosition(0.5667);
                 })
                 .lineToLinearHeading(preThreePose)
@@ -364,21 +333,15 @@ public class HexaDeciBlue extends OpMode {
                 .waitSeconds(10)
                 .addTemporalMarker(0.3,() -> {
                     extTarget = 230;
-                    smallWrist.setPosition(1);
+                    smallWrist.setPosition(0.1367);
                     bigWristR.setPosition(0.95);
                     bigWristL.setPosition(0.05);
                 })
-                .addTemporalMarker(0.8,() -> {
-                    smallWrist.setPosition(0.1367);
-                })
                 .addTemporalMarker(1,() -> {
-                    smallWrist.setPosition(1);
+                    smallWrist.setPosition(0.6306);
                     bigWristL.setPosition(0.04);
                     bigWristR.setPosition(0.96);
                     spin.setPosition(0.4239);
-                })
-                .addTemporalMarker(1.5,() -> {
-                    smallWrist.setPosition(0.6306);
                 })
                 .addTemporalMarker(2,() -> {
                     extTarget = 0;
@@ -404,12 +367,9 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(0.4,() -> {
                     bigWristL.setPosition(0.76);
                     bigWristR.setPosition(0.24);
-                    smallWrist.setPosition(1);
-                })
-                .addTemporalMarker(1.5,() -> {
                     smallWrist.setPosition(0.5667);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(plopAnnoying, mail);})
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(plopAnnoying, mail);})
                 .build();
         //endregion
 
@@ -419,22 +379,16 @@ public class HexaDeciBlue extends OpMode {
                 .addTemporalMarker(1.5,() -> {
                     claw.setPosition(0.9);
                 })
-                .addTemporalMarker(2.5,() -> {drive.followTrajectorySequenceAsync(park, mail);}) //surpriseBlock
+                .addTemporalMarker(1.7,() -> {drive.followTrajectorySequenceAsync(park, mail);}) //surpriseBlock
                 .build();
         //endregion
         //endregion
 
         //region PARK
         park = drive.trajectorySequenceBuilder(plopAnnoying.end()) //suprisePlop.end()
-                .addTemporalMarker(1, () -> {
-                    extTarget = 0;
-                    bigWristL.setPosition(1);
-                    bigWristR.setPosition(0);
-                    smallWrist.setPosition(1);
-                    claw.setPosition(0.7);
-                    spin.setPosition(0.7106);
-                })
-                .addTemporalMarker(1.5,() -> {
+                .addTemporalMarker(0,() -> {
+                    bigWristL.setPosition(0.58);
+                    bigWristR.setPosition(0.4);
                     smallWrist.setPosition(0.5667);
                 })
                 .lineToLinearHeading(onePose)
@@ -442,7 +396,6 @@ public class HexaDeciBlue extends OpMode {
                 .lineToLinearHeading(parkPose)
 
                 .waitSeconds(1)
-                /*
                 .addTemporalMarker(0.3,() -> {
                     extTarget = 0;
                     spin.setPosition(0.7106);
@@ -456,7 +409,7 @@ public class HexaDeciBlue extends OpMode {
                     bigWristR.setPosition(0.4789);
                     smallWrist.setPosition(0.3489);
                     extTarget = 200;
-                })*/
+                })
                 .build();
         //endregion
 
